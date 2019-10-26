@@ -55,4 +55,16 @@ class ParserTest extends Specification {
         program.statements.get(0) == new ExpressionStatement(new Token(Tokens.IDENT, "foobar"), new Identifier(new Token(Tokens.IDENT, "foobar"), "foobar"))
     }
 
+    def "int expressions on their own are parsed correctly"() {
+        given:
+        def input = "5;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 1
+        program.statements.get(0) == new ExpressionStatement(new Token(Tokens.INT, "5"), new IntegerLiteral(new Token(Tokens.INT, "5"), 5))
+    }
 }

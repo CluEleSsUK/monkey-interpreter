@@ -53,6 +53,13 @@ data class ExpressionStatement(
     override fun tokenLiteral() = token.literal
 }
 
+data class IntegerLiteral(
+    val token: Token,
+    val value: Int
+) : Expression {
+    override fun tokenLiteral() = token.literal
+}
+
 data class IntExpr(
     val token: Token,
     val value: String

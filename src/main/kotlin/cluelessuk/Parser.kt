@@ -9,7 +9,8 @@ class Parser(private val lexer: Lexer) {
 
     private var errors = listOf<String>()
     private val prefixParseFunctions = mapOf<TokenType, PrefixParseFun>(
-        Tokens.IDENT to this::parseIdentifier
+        Tokens.IDENT to this::parseIdentifier,
+        Tokens.INT to this::parseIntegerLiteral
     )
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>()
 
@@ -101,6 +102,20 @@ class Parser(private val lexer: Lexer) {
             return null
         }
         return Identifier(lexer.token, lexer.token.literal)
+    }
+
+    private fun parseIntegerLiteral(lexer: Lexer): IntegerLiteral? {
+        if (lexer.token == null) {
+            return null
+        }
+
+        return try {
+            val asInt = lexer.token.literal.toInt()
+            IntegerLiteral(lexer.token, asInt)
+        } catch (ex: Exception) {
+            errors = errors.plus("Could not parse ${lexer.token} as integer!")
+            null
+        }
     }
 
     private fun incrementForNext(lexer: Lexer): Pair<Lexer, Token?> {
