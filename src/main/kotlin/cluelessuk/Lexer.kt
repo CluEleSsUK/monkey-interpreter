@@ -1,0 +1,106 @@
+package cluelessuk
+
+data class Lexer @JvmOverloads constructor(
+    private val code: String,
+    private val position: Int = 0,
+    val token: Token? = null
+) {
+
+    private val current: Char = if (position >= code.length) {
+        '0'
+    } else {
+        code[position]
+    }
+
+    fun hasMore(): Boolean {
+        return token?.type != Tokens.EOF
+    }
+
+    fun nextToken(): Lexer {
+        return when (current) {
+            ';' -> readAndIncrement(Tokens.SEMICOLON)
+            ',' -> readAndIncrement(Tokens.COMMA)
+            '(' -> readAndIncrement(Tokens.LPAREN)
+            ')' -> readAndIncrement(Tokens.RPAREN)
+            '{' -> readAndIncrement(Tokens.LBRACE)
+            '}' -> readAndIncrement(Tokens.RBRACE)
+            '+' -> readAndIncrement(Tokens.PLUS)
+            '-' -> readAndIncrement(Tokens.MINUS)
+            '/' -> readAndIncrement(Tokens.DIVIDE)
+            '*' -> readAndIncrement(Tokens.MULTIPLY)
+            '<' -> readAndIncrement(Tokens.LT)
+            '>' -> readAndIncrement(Tokens.GT)
+            '0' -> incremented(Token(Tokens.EOF, ""))
+            '=' -> readEquals()
+            '!' -> readBang()
+            else -> readNonSyntax()
+        }
+    }
+
+    private fun readAndIncrement(type: Tokens): Lexer {
+        return incremented(Token(type, current))
+    }
+
+    private fun incremented(token: Token?): Lexer {
+        return this.copy(token = token, position = position + 1)
+    }
+
+    private fun readNonSyntax(): Lexer {
+        return when {
+            current.isWhitespace() -> incremented(null).nextToken()
+            current.isLetterOrUnderscore() -> readIdentifier()
+            current.isDigit() -> readNumber()
+            else -> incremented(Token(Tokens.ILLEGAL, current))
+        }
+    }
+
+    private fun readIdentifier(): Lexer {
+        val lastIdentifierIndex = lookAheadWhile(position) { code[it].isLetterOrUnderscore() }
+        val identifier = code.slice(position until lastIdentifierIndex)
+        val nextToken = Token(
+            type = keywords[identifier] ?: Tokens.IDENT,
+            literal = identifier
+        )
+        return this.copy(token = nextToken, position = lastIdentifierIndex)
+    }
+
+    private fun readNumber(): Lexer {
+        val lastNumberIndex = lookAheadWhile(position) { code[it].isDigit() }
+        val nextToken = Token(
+            type = Tokens.INT,
+            literal = code.slice(position until lastNumberIndex)
+        )
+        return this.copy(token = nextToken, position = lastNumberIndex)
+    }
+
+    private fun readEquals(): Lexer {
+        if (isFinalPosition() || code[position + 1] != '=') {
+            return readAndIncrement(Tokens.ASSIGN)
+        }
+
+        return this.copy(token = Token(Tokens.EQ, "=="), position = position + 2)
+    }
+
+    private fun readBang(): Lexer {
+        if (isFinalPosition() || code[position + 1] != '=') {
+            return readAndIncrement(Tokens.BANG)
+        }
+        return this.copy(token = Token(Tokens.NOT_EQ, "!="), position = position + 2)
+    }
+
+    private fun lookAheadWhile(next: Int, predicate: (position: Int) -> Boolean): Int {
+        if (next > code.length - 1 || !predicate(next)) {
+            return next
+        }
+
+        return lookAheadWhile(next + 1, predicate)
+    }
+
+    private fun isFinalPosition(): Boolean {
+        return code.length == position - 1
+    }
+}
+
+fun Char?.isLetterOrUnderscore(): Boolean {
+    return this != null && (this.isLetter() || this == '_')
+}
