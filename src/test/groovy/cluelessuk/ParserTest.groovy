@@ -67,4 +67,44 @@ class ParserTest extends Specification {
         program.statements.size() == 1
         program.statements.get(0) == new ExpressionStatement(new Token(Tokens.INT, "5"), new IntegerLiteral(new Token(Tokens.INT, "5"), 5))
     }
+
+    def "multiple expressions are parsed correctly"() {
+        given:
+        def input = "5; 1;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 2
+        program.statements.get(0) == new ExpressionStatement(new Token(Tokens.INT, "5"), new IntegerLiteral(new Token(Tokens.INT, "5"), 5))
+        program.statements.get(1) == new ExpressionStatement(new Token(Tokens.INT, "1"), new IntegerLiteral(new Token(Tokens.INT, "1"), 1))
+    }
+
+    def "Long integer literals don't bomb out"() {
+        given:
+        def input = "500000;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 1
+        program.statements.get(0) == new ExpressionStatement(new Token(Tokens.INT, "500000"), new IntegerLiteral(new Token(Tokens.INT, "500000"), 500000))
+    }
+
+    def "prefix expressions are parsed and typed correctly"() {
+        given:
+        def input = "-5;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 1
+        program.statements.get(0) == new ExpressionStatement(new Token(Tokens.MINUS, "-"), new PrefixExpression(new Token(Tokens.MINUS, "-"), "-", new IntegerLiteral(new Token(Tokens.INT, "5"), 5)))
+    }
 }

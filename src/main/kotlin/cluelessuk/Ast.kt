@@ -67,6 +67,19 @@ data class IntExpr(
     override fun tokenLiteral() = token.literal
 }
 
+data class PrefixExpression(
+    val token: Token,
+    val operator: String,
+    val right: Expression
+) : Expression {
+
+    override fun tokenLiteral() = token.literal
+
+    override fun toString(): String {
+        return "($operator ${right})"
+    }
+}
+
 enum class OperatorPrecedence {
     LOWEST,
     EQUALS,
