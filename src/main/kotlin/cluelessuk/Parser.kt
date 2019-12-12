@@ -2,6 +2,7 @@ package cluelessuk
 
 
 typealias PrefixParseFun = () -> Expression?
+typealias InfixParseFun = (Expression) -> Expression?
 
 class Parser(var lexer: Lexer) {
 
@@ -11,6 +12,17 @@ class Parser(var lexer: Lexer) {
         Tokens.INT to this::parseIntegerLiteral,
         Tokens.BANG to this::parsePrefixExpression,
         Tokens.MINUS to this::parsePrefixExpression
+    )
+
+    private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
+        Tokens.ASTERISK to this::parseInfixExpression,
+        Tokens.SLASH to this::parseInfixExpression,
+        Tokens.PLUS to this::parseInfixExpression,
+        Tokens.MINUS to this::parseInfixExpression,
+        Tokens.EQ to this::parseInfixExpression,
+        Tokens.NOT_EQ to this::parseInfixExpression,
+        Tokens.GT to this::parseInfixExpression,
+        Tokens.LT to this::parseInfixExpression
     )
 
     fun parseProgram(): Program {
@@ -77,15 +89,23 @@ class Parser(var lexer: Lexer) {
     }
 
     private fun parseExpression(precedence: Int): Expression? {
-        val prefix = prefixParseFunctions[lexer.token?.type] ?: return null
-        return prefix()
+        var leftExpression = prefixParseFunctions[lexer.token?.type]?.invoke() ?: return null
+        var nextToken = lexer.nextToken().token
+
+        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence < precedenceOf(nextToken).ordinal) {
+            val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
+            incrementLexerForToken()
+            val nextLeft = infixFunc(leftExpression) ?: return leftExpression
+
+            nextToken = lexer.nextToken().token
+            leftExpression = nextLeft
+        }
+
+        return leftExpression
     }
 
     private fun parseIdentifier(): Identifier? {
-        if (lexer.token == null) {
-            return null
-        }
-        return Identifier(lexer.token!!, lexer.token!!.literal)
+        return lexer.token?.let { Identifier(it, it.literal) } ?: return null
     }
 
     private fun parseIntegerLiteral(): IntegerLiteral? {
@@ -105,9 +125,22 @@ class Parser(var lexer: Lexer) {
     private fun parsePrefixExpression(): PrefixExpression? {
         val initialToken = lexer.token ?: return null
         incrementLexerForToken()
-        val nextExpression = parseExpression(OperatorPrecedence.LOWEST.ordinal) ?: return null
+        val nextExpression = parseExpression(OperatorPrecedence.PREFIX.ordinal) ?: return null
 
         return PrefixExpression(initialToken, initialToken.literal, nextExpression)
+    }
+
+    private fun parseInfixExpression(left: Expression): InfixExpression? {
+        val initialToken = lexer.token ?: return null
+        incrementLexerForToken()
+        val right = parseExpression(precedenceOf(initialToken).ordinal)
+
+        if (right == null) {
+            errors = errors.plus("Expected right-hand expression for infix expression")
+            return null
+        }
+
+        return InfixExpression(initialToken, left, initialToken.literal, right)
     }
 
     private fun incrementLexerForToken(): Token? {

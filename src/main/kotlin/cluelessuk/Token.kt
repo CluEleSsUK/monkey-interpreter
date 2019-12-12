@@ -23,8 +23,8 @@ enum class Tokens {
     BANG,
     PLUS,
     MINUS,
-    DIVIDE,
-    MULTIPLY,
+    SLASH,
+    ASTERISK,
     LT,
     GT,
     TRUE,
@@ -36,7 +36,6 @@ enum class Tokens {
     EQ
 }
 
-
 val keywords = mapOf(
     "fn" to Tokens.FUNCTION,
     "let" to Tokens.LET,
@@ -45,5 +44,4 @@ val keywords = mapOf(
     "if" to Tokens.IF,
     "else" to Tokens.ELSE,
     "return" to Tokens.RETURN
-
 )

@@ -59,7 +59,7 @@ class LexerTest extends spock.lang.Specification {
            5 < 10 > 5;
         """
         def expectedResult = [
-                new Token(Tokens.BANG, "!"), new Token(Tokens.MINUS, "-"), new Token(Tokens.DIVIDE, "/"), new Token(Tokens.MULTIPLY, "*"), new Token(Tokens.INT, "5"), new Token(Tokens.SEMICOLON, ";"),
+                new Token(Tokens.BANG, "!"), new Token(Tokens.MINUS, "-"), new Token(Tokens.SLASH, "/"), new Token(Tokens.ASTERISK, "*"), new Token(Tokens.INT, "5"), new Token(Tokens.SEMICOLON, ";"),
                 new Token(Tokens.INT, "5"), new Token(Tokens.LT, "<"), new Token(Tokens.INT, "10"), new Token(Tokens.GT, ">"), new Token(Tokens.INT, "5"), new Token(Tokens.SEMICOLON, ";"), new Token(Tokens.EOF, "")
         ]
 

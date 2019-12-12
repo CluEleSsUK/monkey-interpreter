@@ -9,12 +9,12 @@ class ParserTest extends Specification {
         def input = """
             let x = 5;
             let y = 10;
-            let blah = 10101010;
+            let parseExpression = 10101010;
         """
         def expectedProgram = new Program([
                 new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "x"), "x"), new IntExpr(new Token(Tokens.INT, "5"), "5")),
                 new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "y"), "y"), new IntExpr(new Token(Tokens.INT, "10"), "10")),
-                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "blah"), "blah"), new IntExpr(new Token(Tokens.INT, "10101010"), "10101010")),
+                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "parseExpression"), "parseExpression"), new IntExpr(new Token(Tokens.INT, "10101010"), "10101010")),
         ])
 
         when:
@@ -106,5 +106,41 @@ class ParserTest extends Specification {
         !program.hasErrors()
         program.statements.size() == 1
         program.statements.get(0) == new ExpressionStatement(new Token(Tokens.MINUS, "-"), new PrefixExpression(new Token(Tokens.MINUS, "-"), "-", new IntegerLiteral(new Token(Tokens.INT, "5"), 5)))
+    }
+
+    def "simple int infix expressions are parsed and typed as such"() {
+        given:
+        def input = "10 + 5;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 1
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.INT, "10"),
+                new InfixExpression(
+                        new Token(Tokens.PLUS, "+"),
+                        new IntegerLiteral(new Token(Tokens.INT, "10"), 10),
+                        "+",
+                        new IntegerLiteral(new Token(Tokens.INT, "5"), 5)
+                )
+        )
+    }
+
+    def "mixed fix expressions all print correctly bracketed strings"(String input, String expected) {
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        expect:
+        program.toString() == expected
+
+        where:
+        input                   | expected
+        "!-a"                   | "(! (- a))"
+        "a + b - c"             | "((a + b) - c)"
+        "-a + b"                | "((- a) + b)"
+        "a + b * c"             | "(a + (b * c))"
+        "a + b * c + d / e - f" | "(((a + (b * c)) + (d / e)) - f)"
     }
 }

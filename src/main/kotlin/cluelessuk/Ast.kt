@@ -21,6 +21,8 @@ data class Program(val statements: List<Statement>, val errors: List<String>) : 
     fun hasErrors(): Boolean {
         return errors.isNotEmpty()
     }
+
+    override fun toString(): String = statements.map { it.toString() }.reduce { a, b -> a + b }
 }
 
 data class LetStatement(
@@ -30,6 +32,7 @@ data class LetStatement(
 ) : Statement {
 
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = tokenLiteral()
 }
 
 data class ReturnStatement(
@@ -37,6 +40,7 @@ data class ReturnStatement(
     val returnValue: Expression?
 ) : Statement {
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = tokenLiteral()
 }
 
 data class Identifier(
@@ -44,6 +48,7 @@ data class Identifier(
     val value: String
 ) : Expression {
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = value
 }
 
 data class ExpressionStatement(
@@ -51,6 +56,7 @@ data class ExpressionStatement(
     val expression: Expression
 ) : Statement {
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = expression.toString()
 }
 
 data class IntegerLiteral(
@@ -58,6 +64,7 @@ data class IntegerLiteral(
     val value: Int
 ) : Expression {
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = tokenLiteral()
 }
 
 data class IntExpr(
@@ -65,6 +72,7 @@ data class IntExpr(
     val value: String
 ) : Expression {
     override fun tokenLiteral() = token.literal
+    override fun toString(): String = value
 }
 
 data class PrefixExpression(
@@ -76,7 +84,21 @@ data class PrefixExpression(
     override fun tokenLiteral() = token.literal
 
     override fun toString(): String {
-        return "($operator ${right})"
+        return "($operator $right)"
+    }
+}
+
+data class InfixExpression(
+    val token: Token,
+    val left: Expression,
+    val operator: String,
+    val right: Expression
+) : Expression {
+
+    override fun tokenLiteral() = token.literal
+
+    override fun toString(): String {
+        return "($left $operator $right)"
     }
 }
 
@@ -88,4 +110,19 @@ enum class OperatorPrecedence {
     PRODUCT,
     PREFIX,
     CALL
+}
+
+val precedences = mapOf(
+    Tokens.EQ to OperatorPrecedence.EQUALS,
+    Tokens.NOT_EQ to OperatorPrecedence.EQUALS,
+    Tokens.LT to OperatorPrecedence.LESSGREATER,
+    Tokens.GT to OperatorPrecedence.LESSGREATER,
+    Tokens.PLUS to OperatorPrecedence.SUM,
+    Tokens.MINUS to OperatorPrecedence.SUM,
+    Tokens.SLASH to OperatorPrecedence.PRODUCT,
+    Tokens.ASTERISK to OperatorPrecedence.PRODUCT
+)
+
+fun precedenceOf(token: Token): OperatorPrecedence {
+    return precedences[token.type] ?: OperatorPrecedence.LOWEST
 }
