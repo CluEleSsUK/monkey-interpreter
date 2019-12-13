@@ -143,4 +143,19 @@ class ParserTest extends Specification {
         "a + b * c"             | "(a + (b * c))"
         "a + b * c + d / e - f" | "(((a + (b * c)) + (d / e)) - f)"
     }
+
+    def "boolean literals are parsed as booleans"() {
+        given:
+        def input = "true; false; true;"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.size() == 3
+        program.statements.get(0) == new ExpressionStatement(new Token(Tokens.TRUE, "true"), new BooleanLiteral(new Token(Tokens.TRUE, "true"), true))
+        program.statements.get(1) == new ExpressionStatement(new Token(Tokens.FALSE, "false"), new BooleanLiteral(new Token(Tokens.FALSE, "false"), false))
+        program.statements.get(2) == new ExpressionStatement(new Token(Tokens.TRUE, "true"), new BooleanLiteral(new Token(Tokens.TRUE, "true"), true))
+    }
 }

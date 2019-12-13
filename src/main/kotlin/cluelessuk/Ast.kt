@@ -67,6 +67,14 @@ data class IntegerLiteral(
     override fun toString(): String = tokenLiteral()
 }
 
+data class BooleanLiteral(
+    val token: Token,
+    val value: Boolean
+) : Expression {
+    override fun tokenLiteral() = token.literal
+    override fun toString(): String = tokenLiteral()
+}
+
 data class IntExpr(
     val token: Token,
     val value: String
@@ -83,9 +91,7 @@ data class PrefixExpression(
 
     override fun tokenLiteral() = token.literal
 
-    override fun toString(): String {
-        return "($operator $right)"
-    }
+    override fun toString() = "($operator $right)"
 }
 
 data class InfixExpression(
@@ -97,9 +103,7 @@ data class InfixExpression(
 
     override fun tokenLiteral() = token.literal
 
-    override fun toString(): String {
-        return "($left $operator $right)"
-    }
+    override fun toString() = "($left $operator $right)"
 }
 
 enum class OperatorPrecedence {

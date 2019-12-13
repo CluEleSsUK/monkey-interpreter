@@ -11,7 +11,9 @@ class Parser(var lexer: Lexer) {
         Tokens.IDENT to this::parseIdentifier,
         Tokens.INT to this::parseIntegerLiteral,
         Tokens.BANG to this::parsePrefixExpression,
-        Tokens.MINUS to this::parsePrefixExpression
+        Tokens.MINUS to this::parsePrefixExpression,
+        Tokens.TRUE to this::parseBoolean,
+        Tokens.FALSE to this::parseBoolean
     )
 
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
@@ -83,6 +85,12 @@ class Parser(var lexer: Lexer) {
             raiseError("Could not parse ${lexer.token} as integer!")
             null
         }
+    }
+
+    private fun parseBoolean(): BooleanLiteral? {
+        val currentToken = lexer.token ?: return null
+
+        return BooleanLiteral(currentToken, currentToken.type == Tokens.TRUE)
     }
 
     private fun parseExpressionStatement(): ExpressionStatement? {
