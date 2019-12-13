@@ -30,8 +30,7 @@ class Parser(var lexer: Lexer) {
     }
 
     private tailrec fun parseProgram(statements: List<Statement>): List<Statement> {
-        val currentToken = incrementLexerForToken()
-        if (currentToken?.type == Tokens.EOF) {
+        if (peekToken()?.type == Tokens.EOF) {
             return statements
         }
 
@@ -41,30 +40,19 @@ class Parser(var lexer: Lexer) {
     }
 
     private fun parseStatement(): Statement? =
-        when (lexer.token?.type) {
+        when (peekToken()?.type) {
             Tokens.LET -> parseLetStatement()
             Tokens.RETURN -> parseReturnStatement()
             else -> parseExpressionStatement()
         }
 
     private fun parseLetStatement(): LetStatement? {
-        val startToken = lexer.token ?: return null
+        val startToken = consumeToken()
+        val identifierToken = consumeTokenAndAssertType(Tokens.IDENT)
+        val assignToken = consumeTokenAndAssertType(Tokens.ASSIGN)
+        val intToken = consumeTokenAndAssertType(Tokens.INT)
 
-        val identifierToken = incrementLexerForToken()
-        if (identifierToken?.type != Tokens.IDENT) {
-            raiseError(Tokens.IDENT, identifierToken?.type)
-            return null
-        }
-
-        val assignmentToken = incrementLexerForToken()
-        if (assignmentToken?.type != Tokens.ASSIGN) {
-            raiseError(Tokens.ASSIGN, assignmentToken?.type)
-            return null
-        }
-
-        val intToken = incrementLexerForToken()
-        if (intToken?.type != Tokens.INT) {
-            raiseError(Tokens.INT, intToken?.type)
+        if (startToken == null || identifierToken == null || assignToken == null || intToken == null) {
             return null
         }
 
@@ -72,36 +60,13 @@ class Parser(var lexer: Lexer) {
     }
 
     private fun parseReturnStatement(): ReturnStatement? {
-        val startToken = lexer.token ?: return null
+        val startToken = consumeToken() ?: return null
 
         while (lexer.token?.type != Tokens.SEMICOLON) {
-            incrementLexerForToken()
+            consumeToken()
         }
 
         return ReturnStatement(startToken, null)
-    }
-
-    private fun parseExpressionStatement(): ExpressionStatement? {
-        val currentToken = lexer.token ?: return null
-        val expression = parseExpression(OperatorPrecedence.LOWEST.ordinal) ?: return null
-
-        return ExpressionStatement(currentToken, expression)
-    }
-
-    private fun parseExpression(precedence: Int): Expression? {
-        var leftExpression = prefixParseFunctions[lexer.token?.type]?.invoke() ?: return null
-        var nextToken = lexer.nextToken().token
-
-        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence < precedenceOf(nextToken).ordinal) {
-            val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
-            incrementLexerForToken()
-            val nextLeft = infixFunc(leftExpression) ?: return leftExpression
-
-            nextToken = lexer.nextToken().token
-            leftExpression = nextLeft
-        }
-
-        return leftExpression
     }
 
     private fun parseIdentifier(): Identifier? {
@@ -109,47 +74,76 @@ class Parser(var lexer: Lexer) {
     }
 
     private fun parseIntegerLiteral(): IntegerLiteral? {
-        if (lexer.token == null) {
-            return null
-        }
+        val currentToken = lexer.token ?: return null
 
         return try {
-            val asInt = lexer.token!!.literal.toInt()
-            IntegerLiteral(lexer.token!!, asInt)
+            val asInt = currentToken.literal.toInt()
+            IntegerLiteral(currentToken, asInt)
         } catch (ex: Exception) {
-            errors = errors.plus("Could not parse ${lexer.token} as integer!")
+            raiseError("Could not parse ${lexer.token} as integer!")
             null
         }
     }
 
+    private fun parseExpressionStatement(): ExpressionStatement? {
+        val currentToken = peekToken() ?: return null
+        val expression = parseExpression(OperatorPrecedence.LOWEST.ordinal) ?: return null
+
+        return ExpressionStatement(currentToken, expression)
+    }
+
+    private fun parseExpression(precedence: Int): Expression? {
+        val currentToken = consumeToken() ?: return null
+        var leftExpression = prefixParseFunctions[currentToken.type]?.invoke() ?: return null
+        var nextToken = peekToken()
+
+        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence < precedenceOf(nextToken).ordinal) {
+            val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
+            leftExpression = infixFunc(leftExpression) ?: leftExpression
+            nextToken = peekToken()
+        }
+
+        return leftExpression
+    }
+
     private fun parsePrefixExpression(): PrefixExpression? {
         val initialToken = lexer.token ?: return null
-        incrementLexerForToken()
         val nextExpression = parseExpression(OperatorPrecedence.PREFIX.ordinal) ?: return null
 
         return PrefixExpression(initialToken, initialToken.literal, nextExpression)
     }
 
     private fun parseInfixExpression(left: Expression): InfixExpression? {
-        val initialToken = lexer.token ?: return null
-        incrementLexerForToken()
-        val right = parseExpression(precedenceOf(initialToken).ordinal)
+        val infixToken = consumeToken() ?: return null
+        val right = parseExpression(precedenceOf(infixToken).ordinal)
 
         if (right == null) {
-            errors = errors.plus("Expected right-hand expression for infix expression")
+            raiseError("Expected right-hand expression for infix expression")
             return null
         }
 
-        return InfixExpression(initialToken, left, initialToken.literal, right)
+        return InfixExpression(infixToken, left, infixToken.literal, right)
     }
 
-    private fun incrementLexerForToken(): Token? {
+    private fun peekToken(): Token? {
+        return lexer.nextToken().token
+    }
+
+    private fun consumeToken(): Token? {
         lexer = lexer.nextToken()
         return lexer.token
     }
 
-    private fun raiseError(expected: TokenType, actual: TokenType?) {
-        val errorMessage = "Expected next token to be $expected but was $actual"
-        errors = errors.plus(errorMessage)
+    private fun consumeTokenAndAssertType(tokenType: TokenType): Token? {
+        val nextToken = consumeToken()
+        if (nextToken?.type != tokenType) {
+            raiseError("Expected next token to be ${Tokens.IDENT} but was ${nextToken?.type}")
+            return null
+        }
+        return nextToken
+    }
+
+    private fun raiseError(message: String) {
+        errors = errors.plus(message)
     }
 }
