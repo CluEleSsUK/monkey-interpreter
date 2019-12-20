@@ -106,6 +106,25 @@ data class InfixExpression(
     override fun toString() = "($left $operator $right)"
 }
 
+data class IfExpression(
+    val token: Token,
+    val condition: Expression,
+    val consequence: BlockStatement,
+    val alternative: BlockStatement?
+) : Expression {
+
+    override fun tokenLiteral() = token.literal
+
+    override fun toString() = "(if $condition then $consequence else ${alternative ?: "(none)"})"
+}
+
+data class BlockStatement(
+    val token: Token,
+    val statements: List<Statement>
+) : Statement {
+    override fun tokenLiteral() = token.literal
+}
+
 enum class OperatorPrecedence {
     LOWEST,
     EQUALS,

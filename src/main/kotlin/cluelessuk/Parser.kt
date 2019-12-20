@@ -13,7 +13,9 @@ class Parser(var lexer: Lexer) {
         Tokens.BANG to this::parsePrefixExpression,
         Tokens.MINUS to this::parsePrefixExpression,
         Tokens.TRUE to this::parseBoolean,
-        Tokens.FALSE to this::parseBoolean
+        Tokens.FALSE to this::parseBoolean,
+        Tokens.LPAREN to this::parseGroupedExpression,
+        Tokens.IF to this::parseIfExpression
     )
 
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
@@ -71,6 +73,37 @@ class Parser(var lexer: Lexer) {
         return ReturnStatement(startToken, null)
     }
 
+    private fun parseIfExpression(): Expression? {
+        val startToken = lexer.token ?: return null
+        consumeTokenAndAssertType(Tokens.LPAREN) ?: return null
+        val predicate = parseExpression(OperatorPrecedence.LOWEST) ?: return null
+        consumeTokenAndAssertType(Tokens.RPAREN) ?: return null
+        val trueBlock = parseBlockStatement() ?: return null
+
+        if (peekToken()?.type == Tokens.ELSE) {
+            consumeToken()
+            val falseBlock = parseBlockStatement()
+            return IfExpression(startToken, predicate, trueBlock, falseBlock)
+        }
+
+        return IfExpression(startToken, predicate, trueBlock, null)
+    }
+
+    private fun parseBlockStatement(): BlockStatement? {
+        val startToken = consumeTokenAndAssertType(Tokens.LBRACE) ?: return null
+        var statements = listOf<Statement>()
+
+        while (peekToken()?.type != Tokens.RBRACE && peekToken()?.type != Tokens.EOF) {
+            val statement = parseStatement()
+            if (statement != null) {
+                statements = statements.plus(statement)
+            }
+        }
+
+        consumeTokenAndAssertType(Tokens.RBRACE)
+        return BlockStatement(startToken, statements)
+    }
+
     private fun parseIdentifier(): Identifier? {
         return lexer.token?.let { Identifier(it, it.literal) } ?: return null
     }
@@ -93,19 +126,25 @@ class Parser(var lexer: Lexer) {
         return BooleanLiteral(currentToken, currentToken.type == Tokens.TRUE)
     }
 
+    private fun parseGroupedExpression(): Expression? {
+        val expression = parseExpression(OperatorPrecedence.LOWEST)
+        consumeTokenAndAssertType(Tokens.RPAREN)
+        return expression
+    }
+
     private fun parseExpressionStatement(): ExpressionStatement? {
         val currentToken = peekToken() ?: return null
-        val expression = parseExpression(OperatorPrecedence.LOWEST.ordinal) ?: return null
+        val expression = parseExpression(OperatorPrecedence.LOWEST) ?: return null
 
         return ExpressionStatement(currentToken, expression)
     }
 
-    private fun parseExpression(precedence: Int): Expression? {
+    private fun parseExpression(precedence: OperatorPrecedence): Expression? {
         val currentToken = consumeToken() ?: return null
         var leftExpression = prefixParseFunctions[currentToken.type]?.invoke() ?: return null
         var nextToken = peekToken()
 
-        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence < precedenceOf(nextToken).ordinal) {
+        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence.ordinal < precedenceOf(nextToken).ordinal) {
             val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
             leftExpression = infixFunc(leftExpression) ?: leftExpression
             nextToken = peekToken()
@@ -116,14 +155,14 @@ class Parser(var lexer: Lexer) {
 
     private fun parsePrefixExpression(): PrefixExpression? {
         val initialToken = lexer.token ?: return null
-        val nextExpression = parseExpression(OperatorPrecedence.PREFIX.ordinal) ?: return null
+        val nextExpression = parseExpression(OperatorPrecedence.PREFIX) ?: return null
 
         return PrefixExpression(initialToken, initialToken.literal, nextExpression)
     }
 
     private fun parseInfixExpression(left: Expression): InfixExpression? {
         val infixToken = consumeToken() ?: return null
-        val right = parseExpression(precedenceOf(infixToken).ordinal)
+        val right = parseExpression(precedenceOf(infixToken))
 
         if (right == null) {
             raiseError("Expected right-hand expression for infix expression")

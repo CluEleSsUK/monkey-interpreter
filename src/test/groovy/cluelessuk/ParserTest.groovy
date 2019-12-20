@@ -158,4 +158,82 @@ class ParserTest extends Specification {
         program.statements.get(1) == new ExpressionStatement(new Token(Tokens.FALSE, "false"), new BooleanLiteral(new Token(Tokens.FALSE, "false"), false))
         program.statements.get(2) == new ExpressionStatement(new Token(Tokens.TRUE, "true"), new BooleanLiteral(new Token(Tokens.TRUE, "true"), true))
     }
+
+    def "grouped expressions remain grouped"() {
+        given:
+        def input = "(5 + 5) * 10"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.toString() == "((5 + 5) * 10)"
+    }
+
+    def "lone if statement has a block statement"() {
+        given:
+        def input = "if (x < y) { x }"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.IF, "if"),
+                new IfExpression(
+                        new Token(Tokens.IF, "if"),
+                        new InfixExpression(
+                                new Token(Tokens.LT, "<"),
+                                new Identifier(new Token(Tokens.IDENT, "x"), "x"),
+                                "<",
+                                new Identifier(new Token(Tokens.IDENT, "y"), "y")
+                        ),
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]
+                        ),
+                        null
+                )
+        )
+    }
+
+    def "if statement with else has block statements for both"() {
+        given:
+        def input = """
+            if (x < y) { 
+                x 
+            } else {
+               y
+            }
+            
+        """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.IF, "if"),
+                new IfExpression(
+                        new Token(Tokens.IF, "if"),
+                        new InfixExpression(
+                                new Token(Tokens.LT, "<"),
+                                new Identifier(new Token(Tokens.IDENT, "x"), "x"),
+                                "<",
+                                new Identifier(new Token(Tokens.IDENT, "y"), "y")
+                        ),
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]
+                        ),
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(new Token(Tokens.IDENT, "y"), new Identifier(new Token(Tokens.IDENT, "y"), "y"))]
+                        )
+                )
+        )
+    }
 }
