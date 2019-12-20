@@ -31,7 +31,10 @@ class ParserTest extends Specification {
             return 10;
         """
         def expectedProgram = new Program([
-                new ReturnStatement(new Token(Tokens.RETURN, "return"), null)
+                new ReturnStatement(
+                        new Token(Tokens.RETURN, "return"),
+                        new IntegerLiteral(new Token(Tokens.INT, "10"), 10)
+                )
         ])
 
         when:

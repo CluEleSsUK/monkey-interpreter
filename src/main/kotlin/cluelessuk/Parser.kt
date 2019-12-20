@@ -65,12 +65,10 @@ class Parser(var lexer: Lexer) {
 
     private fun parseReturnStatement(): ReturnStatement? {
         val startToken = consumeToken() ?: return null
+        val expression = parseExpression(OperatorPrecedence.LOWEST) ?: return null
+        consumeTokenAndAssertType(Tokens.SEMICOLON)
 
-        while (lexer.token?.type != Tokens.SEMICOLON) {
-            consumeToken()
-        }
-
-        return ReturnStatement(startToken, null)
+        return ReturnStatement(startToken, expression)
     }
 
     private fun parseIfExpression(): Expression? {
