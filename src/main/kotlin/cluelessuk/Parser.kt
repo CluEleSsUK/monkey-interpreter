@@ -15,7 +15,8 @@ class Parser(var lexer: Lexer) {
         Tokens.TRUE to this::parseBoolean,
         Tokens.FALSE to this::parseBoolean,
         Tokens.LPAREN to this::parseGroupedExpression,
-        Tokens.IF to this::parseIfExpression
+        Tokens.IF to this::parseIfExpression,
+        Tokens.FUNCTION to this::parseFunctionExpression
     )
 
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
@@ -100,6 +101,28 @@ class Parser(var lexer: Lexer) {
 
         consumeTokenAndAssertType(Tokens.RBRACE)
         return BlockStatement(startToken, statements)
+    }
+
+    private fun parseFunctionExpression(): FunctionLiteral? {
+        val startToken = lexer.token ?: return null
+        consumeTokenAndAssertType(Tokens.LPAREN) ?: return null
+        var parameters = listOf<Identifier>()
+
+        while (peekToken()?.type == Tokens.IDENT || peekToken()?.type == Tokens.COMMA) {
+            if (consumeToken()?.type == Tokens.COMMA) {
+                continue
+            }
+            val nextParam = parseIdentifier()
+
+            if (nextParam != null) {
+                parameters = parameters.plus(nextParam)
+            }
+        }
+
+        consumeTokenAndAssertType(Tokens.RPAREN) ?: return null
+        val functionBlock = parseBlockStatement() ?: return null
+
+        return FunctionLiteral(startToken, parameters, functionBlock)
     }
 
     private fun parseIdentifier(): Identifier? {

@@ -125,6 +125,16 @@ data class BlockStatement(
     override fun tokenLiteral() = token.literal
 }
 
+data class FunctionLiteral(
+    val token: Token,
+    val arguments: List<Identifier>,
+    val body: BlockStatement
+) : Expression {
+    override fun tokenLiteral() = token.literal
+
+    override fun toString() = "fn(${arguments.joinToString(",")}) $body"
+}
+
 enum class OperatorPrecedence {
     LOWEST,
     EQUALS,

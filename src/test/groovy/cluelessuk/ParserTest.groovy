@@ -239,4 +239,92 @@ class ParserTest extends Specification {
                 )
         )
     }
+
+    def "function literals with no arguments contain a block function and empty args"() {
+        given:
+        def input = """
+            fn() {
+                1;
+            }
+        """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.FUNCTION, "fn"),
+                new FunctionLiteral(
+                        new Token(Tokens.FUNCTION, "fn"),
+                        [],
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(
+                                        new Token(Tokens.INT, "1"),
+                                        new IntegerLiteral(new Token(Tokens.INT, "1"), 1)
+                                )]
+                        )
+                )
+        )
+    }
+
+    def "function literal with a single argument contains the correct argument"() {
+        given:
+        def input = """
+            fn(x) {
+                x;
+            }
+        """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.FUNCTION, "fn"),
+                new FunctionLiteral(
+                        new Token(Tokens.FUNCTION, "fn"),
+                        [new Identifier(new Token(Tokens.IDENT, "x"), "x")],
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]
+                        )
+                )
+        )
+    }
+
+    def "function literals with multiple arguments contain the correct arguments"() {
+        given:
+        def input = """
+            fn(x, y) {
+                x + y;
+            }
+        """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.FUNCTION, "fn"),
+                new FunctionLiteral(
+                        new Token(Tokens.FUNCTION, "fn"),
+                        [new Identifier(new Token(Tokens.IDENT, "x"), "x"), new Identifier(new Token(Tokens.IDENT, "y"), "y")],
+                        new BlockStatement(
+                                new Token(Tokens.LBRACE, "{"),
+                                [new ExpressionStatement(
+                                        new Token(Tokens.IDENT, "x"),
+                                        new InfixExpression(
+                                                new Token(Tokens.PLUS, "+"),
+                                                new Identifier(new Token(Tokens.IDENT, "x"), "x"),
+                                                "+",
+                                                new Identifier(new Token(Tokens.IDENT, "y"), "y"),
+                                        ))]
+                        )
+                )
+        )
+    }
 }
