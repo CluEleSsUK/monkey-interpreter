@@ -56,13 +56,13 @@ class Parser(var lexer: Lexer) {
         val startToken = consumeToken()
         val identifierToken = consumeTokenAndAssertType(Tokens.IDENT)
         val assignToken = consumeTokenAndAssertType(Tokens.ASSIGN)
-        val intToken = consumeTokenAndAssertType(Tokens.INT)
+        val expression = parseExpression(OperatorPrecedence.LOWEST)
 
-        if (startToken == null || identifierToken == null || assignToken == null || intToken == null) {
+        if (startToken == null || identifierToken == null || assignToken == null || expression == null) {
             return null
         }
 
-        return LetStatement(startToken, Identifier(identifierToken, identifierToken.literal), IntExpr(intToken, intToken.literal))
+        return LetStatement(startToken, Identifier(identifierToken, identifierToken.literal), expression)
     }
 
     private fun parseReturnStatement(): ReturnStatement? {

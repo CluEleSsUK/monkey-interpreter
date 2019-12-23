@@ -75,14 +75,6 @@ data class BooleanLiteral(
     override fun toString(): String = tokenLiteral()
 }
 
-data class IntExpr(
-    val token: Token,
-    val value: String
-) : Expression {
-    override fun tokenLiteral() = token.literal
-    override fun toString(): String = value
-}
-
 data class PrefixExpression(
     val token: Token,
     val operator: String,

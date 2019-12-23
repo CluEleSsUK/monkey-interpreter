@@ -12,9 +12,9 @@ class ParserTest extends Specification {
             let parseExpression = 10101010;
         """
         def expectedProgram = new Program([
-                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "x"), "x"), new IntExpr(new Token(Tokens.INT, "5"), "5")),
-                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "y"), "y"), new IntExpr(new Token(Tokens.INT, "10"), "10")),
-                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "parseExpression"), "parseExpression"), new IntExpr(new Token(Tokens.INT, "10101010"), "10101010")),
+                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "x"), "x"), new IntegerLiteral(new Token(Tokens.INT, "5"), 5)),
+                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "y"), "y"), new IntegerLiteral(new Token(Tokens.INT, "10"), 10)),
+                new LetStatement(new Token(Tokens.LET, "let"), new Identifier(new Token(Tokens.IDENT, "parseExpression"), "parseExpression"), new IntegerLiteral(new Token(Tokens.INT, "10101010"), 10101010)),
         ])
 
         when:
