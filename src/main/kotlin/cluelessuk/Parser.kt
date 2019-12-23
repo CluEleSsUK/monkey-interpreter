@@ -27,7 +27,8 @@ class Parser(var lexer: Lexer) {
         Tokens.EQ to this::parseInfixExpression,
         Tokens.NOT_EQ to this::parseInfixExpression,
         Tokens.GT to this::parseInfixExpression,
-        Tokens.LT to this::parseInfixExpression
+        Tokens.LT to this::parseInfixExpression,
+        Tokens.LPAREN to this::parseFunctionCall
     )
 
     fun parseProgram(): Program {
@@ -93,9 +94,8 @@ class Parser(var lexer: Lexer) {
         var statements = listOf<Statement>()
 
         while (peekToken()?.type != Tokens.RBRACE && peekToken()?.type != Tokens.EOF) {
-            val statement = parseStatement()
-            if (statement != null) {
-                statements = statements.plus(statement)
+            parseStatement()?.let {
+                statements = statements.plus(it)
             }
         }
 
@@ -112,10 +112,8 @@ class Parser(var lexer: Lexer) {
             if (consumeToken()?.type == Tokens.COMMA) {
                 continue
             }
-            val nextParam = parseIdentifier()
-
-            if (nextParam != null) {
-                parameters = parameters.plus(nextParam)
+            parseIdentifier()?.let {
+                parameters = parameters.plus(it)
             }
         }
 
@@ -151,6 +149,24 @@ class Parser(var lexer: Lexer) {
         val expression = parseExpression(OperatorPrecedence.LOWEST)
         consumeTokenAndAssertType(Tokens.RPAREN)
         return expression
+    }
+
+    private fun parseFunctionCall(left: Expression): CallExpression? {
+        val startToken = consumeTokenAndAssertType(Tokens.LPAREN) ?: return null
+        var args = listOf<Expression>()
+
+        while (peekToken()?.type != Tokens.RPAREN) {
+            if (peekToken()?.type == Tokens.COMMA) {
+                consumeToken()
+                continue
+            }
+
+            parseExpression(OperatorPrecedence.LOWEST)?.let {
+                args = args.plus(it)
+            }
+        }
+
+        return CallExpression(startToken, left, args)
     }
 
     private fun parseExpressionStatement(): ExpressionStatement? {
@@ -205,7 +221,7 @@ class Parser(var lexer: Lexer) {
     private fun consumeTokenAndAssertType(tokenType: TokenType): Token? {
         val nextToken = consumeToken()
         if (nextToken?.type != tokenType) {
-            raiseError("Expected next token to be ${Tokens.IDENT} but was ${nextToken?.type}")
+            raiseError("Expected next token to be $tokenType but was ${nextToken?.type}")
             return null
         }
         return nextToken

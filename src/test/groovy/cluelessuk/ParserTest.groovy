@@ -240,7 +240,7 @@ class ParserTest extends Specification {
         )
     }
 
-    def "function literals with no arguments contain a block function and empty args"() {
+    def "function literals with no parameters contain a block function and empty parameters"() {
         given:
         def input = """
             fn() {
@@ -269,7 +269,7 @@ class ParserTest extends Specification {
         )
     }
 
-    def "function literal with a single argument contains the correct argument"() {
+    def "function literal with a single argument contains the correct parameter"() {
         given:
         def input = """
             fn(x) {
@@ -295,7 +295,7 @@ class ParserTest extends Specification {
         )
     }
 
-    def "function literals with multiple arguments contain the correct arguments"() {
+    def "function literals with multiple arguments contain the correct parameters"() {
         given:
         def input = """
             fn(x, y) {
@@ -324,6 +324,41 @@ class ParserTest extends Specification {
                                                 new Identifier(new Token(Tokens.IDENT, "y"), "y"),
                                         ))]
                         )
+                )
+        )
+    }
+
+    def "function call expression nested sub-expressions as args"() {
+        given:
+        def input = """
+           someFun(2 + 2, 5 * 5, 1);
+        """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.IDENT, "someFun"),
+                new CallExpression(
+                        new Token(Tokens.LPAREN, "("),
+                        new Identifier(new Token(Tokens.IDENT, "someFun"), "someFun"),
+                        [
+                                new InfixExpression(
+                                        new Token(Tokens.PLUS, "+"),
+                                        new IntegerLiteral(new Token(Tokens.INT, "2"), 2),
+                                        "+",
+                                        new IntegerLiteral(new Token(Tokens.INT, "2"), 2)
+                                ),
+                                new InfixExpression(
+                                        new Token(Tokens.ASTERISK, "*"),
+                                        new IntegerLiteral(new Token(Tokens.INT, "5"), 5),
+                                        "*",
+                                        new IntegerLiteral(new Token(Tokens.INT, "5"), 5)
+                                ),
+                                new IntegerLiteral(new Token(Tokens.INT, "1"), 1)
+                        ]
                 )
         )
     }

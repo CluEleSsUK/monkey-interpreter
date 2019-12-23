@@ -135,6 +135,15 @@ data class FunctionLiteral(
     override fun toString() = "fn(${arguments.joinToString(",")}) $body"
 }
 
+data class CallExpression(
+    val token: Token,
+    val function: Expression,
+    val arguments: List<Expression>
+) : Expression {
+    override fun tokenLiteral() = token.literal
+    override fun toString() = "${function.tokenLiteral()}(${arguments.joinToString(", ")})"
+}
+
 enum class OperatorPrecedence {
     LOWEST,
     EQUALS,
@@ -153,7 +162,8 @@ val precedences = mapOf(
     Tokens.PLUS to OperatorPrecedence.SUM,
     Tokens.MINUS to OperatorPrecedence.SUM,
     Tokens.SLASH to OperatorPrecedence.PRODUCT,
-    Tokens.ASTERISK to OperatorPrecedence.PRODUCT
+    Tokens.ASTERISK to OperatorPrecedence.PRODUCT,
+    Tokens.LPAREN to OperatorPrecedence.CALL
 )
 
 fun precedenceOf(token: Token): OperatorPrecedence {
