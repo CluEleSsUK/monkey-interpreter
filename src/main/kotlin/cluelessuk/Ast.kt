@@ -1,25 +1,25 @@
 package cluelessuk
 
-interface Node {
-    fun tokenLiteral(): String
+sealed class Node {
+    abstract fun tokenLiteral(): String
 }
 
-interface Statement : Node
+sealed class Statement : Node()
 
-interface Expression : Node
+sealed class Expression : Node()
 
-data class Program(val statements: List<Statement>, val errors: List<String>) : Node {
+data class Program(val statements: List<Statement>, val errors: List<String>) : Node() {
     constructor(statements: List<Statement>) : this(statements, emptyList())
+
+    fun hasErrors(): Boolean {
+        return errors.isNotEmpty()
+    }
 
     override fun tokenLiteral(): String {
         if (statements.isEmpty()) {
             return ""
         }
         return statements.first().tokenLiteral()
-    }
-
-    fun hasErrors(): Boolean {
-        return errors.isNotEmpty()
     }
 
     override fun toString(): String = statements.map { it.toString() }.reduce { a, b -> a + b }
@@ -29,7 +29,7 @@ data class LetStatement(
     val token: Token,
     val name: Identifier,
     val value: Expression
-) : Statement {
+) : Statement() {
 
     override fun tokenLiteral() = token.literal
     override fun toString(): String = "(${tokenLiteral()} $name = $value)"
@@ -38,7 +38,7 @@ data class LetStatement(
 data class ReturnStatement(
     val token: Token,
     val returnValue: Expression?
-) : Statement {
+) : Statement() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = "(${tokenLiteral()} $returnValue)"
 }
@@ -46,7 +46,7 @@ data class ReturnStatement(
 data class Identifier(
     val token: Token,
     val value: String
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = value
 }
@@ -54,7 +54,7 @@ data class Identifier(
 data class ExpressionStatement(
     val token: Token,
     val expression: Expression
-) : Statement {
+) : Statement() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = expression.toString()
 }
@@ -62,7 +62,7 @@ data class ExpressionStatement(
 data class IntegerLiteral(
     val token: Token,
     val value: Int
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = tokenLiteral()
 }
@@ -70,7 +70,7 @@ data class IntegerLiteral(
 data class BooleanLiteral(
     val token: Token,
     val value: Boolean
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = tokenLiteral()
 }
@@ -79,7 +79,7 @@ data class PrefixExpression(
     val token: Token,
     val operator: String,
     val right: Expression
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "($operator $right)"
 }
@@ -89,7 +89,7 @@ data class InfixExpression(
     val left: Expression,
     val operator: String,
     val right: Expression
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "($left $operator $right)"
 }
@@ -99,7 +99,7 @@ data class IfExpression(
     val condition: Expression,
     val consequence: BlockStatement,
     val alternative: BlockStatement?
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "(if $condition then $consequence else ${alternative ?: "(none)"})"
 }
@@ -107,7 +107,7 @@ data class IfExpression(
 data class BlockStatement(
     val token: Token,
     val statements: List<Statement>
-) : Statement {
+) : Statement() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "{ ${statements.joinToString("; ")} }"
 }
@@ -116,7 +116,7 @@ data class FunctionLiteral(
     val token: Token,
     val arguments: List<Identifier>,
     val body: BlockStatement
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "fn(${arguments.joinToString(",")}) $body"
 }
@@ -125,7 +125,7 @@ data class CallExpression(
     val token: Token,
     val function: Expression,
     val arguments: List<Expression>
-) : Expression {
+) : Expression() {
     override fun tokenLiteral() = token.literal
     override fun toString() = "${function.tokenLiteral()}(${arguments.joinToString(", ")})"
 }
