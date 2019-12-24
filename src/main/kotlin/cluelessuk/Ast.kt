@@ -32,7 +32,7 @@ data class LetStatement(
 ) : Statement {
 
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = tokenLiteral()
+    override fun toString(): String = "(${tokenLiteral()} $name = $value)"
 }
 
 data class ReturnStatement(
@@ -40,7 +40,7 @@ data class ReturnStatement(
     val returnValue: Expression?
 ) : Statement {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = tokenLiteral()
+    override fun toString(): String = "(${tokenLiteral()} $returnValue)"
 }
 
 data class Identifier(
@@ -80,9 +80,7 @@ data class PrefixExpression(
     val operator: String,
     val right: Expression
 ) : Expression {
-
     override fun tokenLiteral() = token.literal
-
     override fun toString() = "($operator $right)"
 }
 
@@ -92,9 +90,7 @@ data class InfixExpression(
     val operator: String,
     val right: Expression
 ) : Expression {
-
     override fun tokenLiteral() = token.literal
-
     override fun toString() = "($left $operator $right)"
 }
 
@@ -104,9 +100,7 @@ data class IfExpression(
     val consequence: BlockStatement,
     val alternative: BlockStatement?
 ) : Expression {
-
     override fun tokenLiteral() = token.literal
-
     override fun toString() = "(if $condition then $consequence else ${alternative ?: "(none)"})"
 }
 
@@ -115,6 +109,7 @@ data class BlockStatement(
     val statements: List<Statement>
 ) : Statement {
     override fun tokenLiteral() = token.literal
+    override fun toString() = "{ ${statements.joinToString("; ")} }"
 }
 
 data class FunctionLiteral(
@@ -123,7 +118,6 @@ data class FunctionLiteral(
     val body: BlockStatement
 ) : Expression {
     override fun tokenLiteral() = token.literal
-
     override fun toString() = "fn(${arguments.joinToString(",")}) $body"
 }
 

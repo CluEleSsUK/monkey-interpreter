@@ -1,27 +1,36 @@
 package cluelessuk
 
+
+const val exitKeyword = "exit"
+
 fun main() {
     startRepl()
 }
 
 fun startRepl() {
+    println("Monkey REPL! Type `exit` to exit.")
+
     while (true) {
-        println("Monkey REPL! Type `exit` to exit.")
-        print(">> ")
-        val input = readLine()
-        if (input.isNullOrBlank() || input == "exit") {
-            println("Exiting...")
+        val input = readConsoleInput()
+        if (input.isNullOrBlank() || input == exitKeyword) {
             break
         }
 
-        eval(Lexer(input).nextToken())
+        val parser = Parser(Lexer(input))
+        render(parser.parseProgram())
     }
 }
 
-tailrec fun eval(lexer: Lexer) {
-    if (lexer.hasMore() && lexer.token?.type != Tokens.EOF) {
-        println(lexer.token)
-        eval(lexer.nextToken())
-    }
+fun readConsoleInput(): String? {
+    print(">> ")
+    return readLine()
 }
 
+fun render(program: Program) {
+    if (program.hasErrors()) {
+        println("Error(s) in program!")
+        program.errors.forEach(::println)
+    } else {
+        println(program)
+    }
+}
