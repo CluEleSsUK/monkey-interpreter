@@ -2,7 +2,7 @@ package cluelessuk
 
 sealed class MObject
 data class MInteger(val value: Int) : MObject()
-data class Bool(val value: Boolean) : MObject()
+data class MBoolean(val value: Boolean) : MObject()
 object Null : MObject()
 
 
@@ -12,7 +12,7 @@ class MonkeyRuntime {
             is Program -> eval(node.statements.last())
             is ExpressionStatement -> eval(node.expression)
             is IntegerLiteral -> MInteger(node.value)
-            is BooleanLiteral -> Bool(node.value)
+            is BooleanLiteral -> MBoolean(node.value)
             else -> Null
         }
     }
