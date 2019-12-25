@@ -36,7 +36,7 @@ class Parser(var lexer: Lexer) {
     }
 
     private tailrec fun parseProgram(statements: List<Statement>): List<Statement> {
-        if (peekToken()?.type == Tokens.EOF) {
+        if (!lexer.hasMore()) {
             return statements
         }
 

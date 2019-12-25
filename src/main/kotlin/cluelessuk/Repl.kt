@@ -2,6 +2,7 @@ package cluelessuk
 
 
 const val exitKeyword = "exit"
+val runtime = MonkeyRuntime()
 
 fun main() {
     startRepl()
@@ -17,7 +18,13 @@ fun startRepl() {
         }
 
         val parser = Parser(Lexer(input))
-        render(parser.parseProgram())
+        val program = parser.parseProgram()
+
+        if (program.hasErrors()) {
+            renderError(program)
+        } else {
+            render(runtime.eval(program))
+        }
     }
 }
 
@@ -26,11 +33,12 @@ fun readConsoleInput(): String? {
     return readLine()
 }
 
-fun render(program: Program) {
-    if (program.hasErrors()) {
-        println("Error(s) in program!")
-        program.errors.forEach(::println)
-    } else {
-        println(program)
-    }
+fun render(obj: MObject) {
+    println(obj)
 }
+
+fun renderError(program: Program) {
+    println("Error(s) in program!")
+    program.errors.forEach(::println)
+}
+

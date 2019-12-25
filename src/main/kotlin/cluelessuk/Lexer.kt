@@ -1,5 +1,7 @@
 package cluelessuk
 
+val EndOfFile = Token(Tokens.EOF, "")
+
 data class Lexer @JvmOverloads constructor(
     private val code: String,
     private val position: Int = 0,
@@ -12,8 +14,10 @@ data class Lexer @JvmOverloads constructor(
         code[position]
     }
 
+    // careful! This function does _not_ imply the `position` is at the last character of `code`
+    // but rather that an EndOfFile marker has been inserted by the Lexer (`position == code.length`)
     fun hasMore(): Boolean {
-        return token?.type != Tokens.EOF
+        return token != EndOfFile
     }
 
     fun nextToken(): Lexer {
@@ -30,9 +34,9 @@ data class Lexer @JvmOverloads constructor(
             '*' -> readAndIncrement(Tokens.ASTERISK)
             '<' -> readAndIncrement(Tokens.LT)
             '>' -> readAndIncrement(Tokens.GT)
-            '0' -> incremented(Token(Tokens.EOF, ""))
             '=' -> readEquals()
             '!' -> readBang()
+            '0' -> this.copy(token = EndOfFile)
             else -> readNonSyntax()
         }
     }
@@ -74,7 +78,7 @@ data class Lexer @JvmOverloads constructor(
     }
 
     private fun readEquals(): Lexer {
-        if (isFinalPosition() || code[position + 1] != '=') {
+        if (isAtLastIndex() || code[position + 1] != '=') {
             return readAndIncrement(Tokens.ASSIGN)
         }
 
@@ -82,7 +86,7 @@ data class Lexer @JvmOverloads constructor(
     }
 
     private fun readBang(): Lexer {
-        if (isFinalPosition() || code[position + 1] != '=') {
+        if (isAtLastIndex() || code[position + 1] != '=') {
             return readAndIncrement(Tokens.BANG)
         }
         return this.copy(token = Token(Tokens.NOT_EQ, "!="), position = position + 2)
@@ -96,8 +100,8 @@ data class Lexer @JvmOverloads constructor(
         return lookAheadWhile(next + 1, predicate)
     }
 
-    private fun isFinalPosition(): Boolean {
-        return code.length == position - 1
+    private fun isAtLastIndex(): Boolean {
+        return position == code.length - 1
     }
 }
 
