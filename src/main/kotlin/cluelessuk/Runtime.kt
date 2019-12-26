@@ -18,6 +18,7 @@ class MonkeyRuntime {
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> if (node.value) True else False
             is PrefixExpression -> evalPrefixExpression(node.operator, eval(node.right))
+            is InfixExpression -> evalInfixExpression(node)
             else -> Null
         }
 
@@ -39,6 +40,29 @@ class MonkeyRuntime {
     private fun evalMinusPrefixExpression(right: MObject) =
         when (right) {
             is MInteger -> MInteger(-right.value)
+            else -> Null
+        }
+
+    private fun evalInfixExpression(expression: InfixExpression): MObject {
+        val left = eval(expression.left)
+        val right = eval(expression.right)
+
+        if (left is MInteger && right is MInteger) {
+            return evalIntegerInfixExpression(expression.operator, left, right)
+        }
+        return Null
+    }
+
+    private fun evalIntegerInfixExpression(operator: String, left: MInteger, right: MInteger): MObject =
+        when (operator) {
+            "+" -> MInteger(left.value + right.value)
+            "-" -> MInteger(left.value - right.value)
+            "*" -> MInteger(left.value * right.value)
+            "/" -> MInteger(left.value / right.value)
+            ">" -> MBoolean(left.value > right.value)
+            "<" -> MBoolean(left.value < right.value)
+            "==" -> MBoolean(left.value == right.value)
+            "!=" -> MBoolean(left.value != right.value)
             else -> Null
         }
 }
