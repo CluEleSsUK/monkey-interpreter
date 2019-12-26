@@ -79,7 +79,7 @@ class EvalKtTest extends Specification {
 
     }
 
-    def "infix boolean expressions evaluate to the correct boolean literal"(String input, MBoolean expected) {
+    def "infix integer comparison expressions evaluate to the correct boolean literal"(String input, MBoolean expected) {
         given:
         def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
 
@@ -96,5 +96,25 @@ class EvalKtTest extends Specification {
         "1 != 1" | False
         "1 == 2" | False
         "1 != 2" | True
+    }
+
+    def "infix boolean comparison expressions evaluate to the correct boolean literal"(String input, MBoolean expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input              | expected
+        "true == true"     | True
+        "false == false"   | True
+        "true == false"    | False
+        "true != false"    | True
+        "false != true"    | True
+        "(1 < 2) == true"  | True
+        "(1 < 2) == false" | False
+        "(1 > 2) == true"  | False
+        "(1 > 2) == false" | True
     }
 }

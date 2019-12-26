@@ -2,7 +2,13 @@ package cluelessuk
 
 sealed class MObject
 data class MInteger(val value: Int) : MObject()
-data class MBoolean(val value: Boolean) : MObject()
+data class MBoolean(val value: Boolean) : MObject() {
+    companion object {
+        fun of(input: Boolean): MBoolean {
+            return if (input) True else False
+        }
+    }
+}
 
 object Null : MObject()
 
@@ -16,7 +22,7 @@ class MonkeyRuntime {
             is Program -> eval(node.statements.last())
             is ExpressionStatement -> eval(node.expression)
             is IntegerLiteral -> MInteger(node.value)
-            is BooleanLiteral -> if (node.value) True else False
+            is BooleanLiteral -> MBoolean.of(node.value)
             is PrefixExpression -> evalPrefixExpression(node.operator, eval(node.right))
             is InfixExpression -> evalInfixExpression(node)
             else -> Null
@@ -44,13 +50,14 @@ class MonkeyRuntime {
         }
 
     private fun evalInfixExpression(expression: InfixExpression): MObject {
+        val operator = expression.operator
         val left = eval(expression.left)
         val right = eval(expression.right)
 
-        if (left is MInteger && right is MInteger) {
-            return evalIntegerInfixExpression(expression.operator, left, right)
+        return when {
+            left is MInteger && right is MInteger -> evalIntegerInfixExpression(operator, left, right)
+            else -> evalBooleanInfixExpression(operator, left, right)
         }
-        return Null
     }
 
     private fun evalIntegerInfixExpression(operator: String, left: MInteger, right: MInteger): MObject =
@@ -61,8 +68,13 @@ class MonkeyRuntime {
             "/" -> MInteger(left.value / right.value)
             ">" -> MBoolean(left.value > right.value)
             "<" -> MBoolean(left.value < right.value)
-            "==" -> MBoolean(left.value == right.value)
-            "!=" -> MBoolean(left.value != right.value)
+            else -> evalBooleanInfixExpression(operator, left, right)
+        }
+
+    private fun evalBooleanInfixExpression(operator: String, left: MObject, right: MObject): MObject =
+        when (operator) {
+            "==" -> MBoolean.of(left == right)
+            "!=" -> MBoolean.of(left != right)
             else -> Null
         }
 }
