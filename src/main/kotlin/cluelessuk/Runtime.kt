@@ -10,7 +10,12 @@ data class MBoolean(val value: Boolean) : MObject() {
     }
 }
 
-object Null : MObject()
+object Null : MObject() {
+    // doesn't play nice with groovy without an overridden equals
+    override fun equals(other: Any?): Boolean {
+        return other is Null
+    }
+}
 
 val True = MBoolean(true)
 val False = MBoolean(false)
@@ -19,14 +24,25 @@ val False = MBoolean(false)
 class MonkeyRuntime {
     fun eval(node: Node): MObject =
         when (node) {
-            is Program -> eval(node.statements.last())
+            is Program -> evalStatements(node.statements)
             is ExpressionStatement -> eval(node.expression)
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> MBoolean.of(node.value)
             is PrefixExpression -> evalPrefixExpression(node.operator, eval(node.right))
             is InfixExpression -> evalInfixExpression(node)
+            is IfExpression -> evalIfExpression(node)
+            is BlockStatement -> evalStatements(node.statements)
             else -> Null
         }
+
+    private fun evalStatements(statements: List<Statement>): MObject {
+        if (statements.isEmpty()) {
+            return Null
+        }
+
+        // currently we have no global object space, so let's just return the result of the last statement
+        return eval(statements.last())
+    }
 
     private fun evalPrefixExpression(operator: String, right: MObject): MObject =
         when (operator) {
@@ -76,5 +92,27 @@ class MonkeyRuntime {
             "==" -> MBoolean.of(left == right)
             "!=" -> MBoolean.of(left != right)
             else -> Null
+        }
+
+    private fun evalIfExpression(expression: IfExpression): MObject {
+        val condition = eval(expression.condition)
+
+        if (isTruthy(condition)) {
+            return eval(expression.consequence)
+        }
+
+        if (expression.alternative == null) {
+            return Null
+        }
+
+        return eval(expression.alternative)
+    }
+
+    private fun isTruthy(obj: MObject): Boolean =
+        when (obj) {
+            True -> true
+            False -> false
+            is Null -> false
+            else -> true
         }
 }

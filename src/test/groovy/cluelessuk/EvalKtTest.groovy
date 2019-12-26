@@ -7,6 +7,7 @@ class EvalKtTest extends Specification {
     def evaluator = new MonkeyRuntime()
     def static True = new MBoolean(true)
     def static False = new MBoolean(false)
+    def static Null = new Null()
 
     def "Single integer literal evaluates to itself"() {
         given:
@@ -116,5 +117,23 @@ class EvalKtTest extends Specification {
         "(1 < 2) == false" | False
         "(1 > 2) == true"  | False
         "(1 > 2) == false" | True
+    }
+
+    def "if expressions return left if non-null or non-falsy, and right if null or falsy"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                           | expected
+        "if (true) { 10 }"              | new MInteger(10)
+        "if (false) { 10 }"             | Null
+        "if (1) { 10 }"                 | new MInteger(10)
+        "if (1 < 2) { 10 }"             | new MInteger(10)
+        "if (1 > 2) { 10 }"             | Null
+        "if (1 < 2) { 10 } else { 20 }" | new MInteger(10)
+        "if (1 > 2) { 10 } else { 20 }" | new MInteger(20)
     }
 }
