@@ -37,7 +37,7 @@ data class LetStatement(
 
 data class ReturnStatement(
     val token: Token,
-    val returnValue: Expression?
+    val returnValue: Expression
 ) : Statement() {
     override fun tokenLiteral() = token.literal
     override fun toString(): String = "(${tokenLiteral()} $returnValue)"

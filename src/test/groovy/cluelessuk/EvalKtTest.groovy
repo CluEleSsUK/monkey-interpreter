@@ -136,4 +136,64 @@ class EvalKtTest extends Specification {
         "if (1 < 2) { 10 } else { 20 }" | new MInteger(10)
         "if (1 > 2) { 10 } else { 20 }" | new MInteger(20)
     }
+
+    def "return statements evaluate expressions"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                 | expected
+        "return 1;"           | new MReturnValue(new MInteger(1))
+        "return 10; 9;"       | new MReturnValue(new MInteger(10))
+        "return 2 * 5; 9;"    | new MReturnValue(new MInteger(10))
+        "9; return 2 * 5; 9;" | new MReturnValue(new MInteger(10))
+    }
+
+    def "nested return statements don't return from outer scopes"() {
+        given:
+        def input = """
+            if (1 < 2) {
+              if (1 < 2) {
+                return 10;
+              }
+                
+              return 1;
+            }
+        """
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        when:
+        def result = evaluator.eval(program)
+
+        then:
+        result == new MReturnValue(new MInteger(10))
+    }
+
+    def "Runtime returns errors for invalid evaluations, no matter where they happen"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                         | expected
+        "1 + true"                    | new MError.TypeMismatch("${new MInteger(1)} + ${new MBoolean(true)}")
+        "1 + true; return 9;"         | new MError.TypeMismatch("${new MInteger(1)} + ${new MBoolean(true)}")
+        "-true"                       | new MError.UnknownOperator("-${new MBoolean(true)}")
+        "true + false;"               | new MError.UnknownOperator("${new MBoolean(true)} + ${new MBoolean(false)}")
+        "5; true + false; 5;"         | new MError.UnknownOperator("${new MBoolean(true)} + ${new MBoolean(false)}")
+        "if (10 > 1) { true + true }" | new MError.UnknownOperator("${new MBoolean(true)} + ${new MBoolean(true)}")
+        """
+        if (10 > 1) {
+          if (10 > 1) {
+            return true + false;
+          }
+          return 1;
+        }
+        """                | new MError.UnknownOperator("${new MBoolean(true)} + ${new MBoolean(false)}")
+    }
 }
