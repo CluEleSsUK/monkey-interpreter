@@ -34,7 +34,7 @@ class MonkeyRuntime {
             is ExpressionStatement -> eval(node.expression)
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> MBoolean.of(node.value)
-            is PrefixExpression -> evalPrefixExpression(node.operator, eval(node.right))
+            is PrefixExpression -> evalPrefixExpression(node)
             is InfixExpression -> evalInfixExpression(node)
             is IfExpression -> evalIfExpression(node)
             is BlockStatement -> evalStatements(node.statements)
@@ -62,12 +62,18 @@ class MonkeyRuntime {
         }
     }
 
-    private fun evalPrefixExpression(operator: String, right: MObject): MObject =
-        when (operator) {
+    private fun evalPrefixExpression(expression: PrefixExpression): MObject {
+        val right = eval(expression.right)
+        if (right is MError) {
+            return right
+        }
+
+        return when (val operator = expression.operator) {
             "!" -> evalBangExpression(right)
             "-" -> evalMinusPrefixExpression(right)
             else -> MError.UnknownOperator("$operator $right")
         }
+    }
 
     private fun evalBangExpression(right: MObject): MObject =
         when (right) {
@@ -80,6 +86,7 @@ class MonkeyRuntime {
     private fun evalMinusPrefixExpression(right: MObject) =
         when (right) {
             is MInteger -> MInteger(-right.value)
+            is Error -> right
             else -> MError.UnknownOperator("-$right")
         }
 
@@ -89,6 +96,8 @@ class MonkeyRuntime {
         val right = eval(expression.right)
 
         return when {
+            left is MError -> left
+            right is MError -> right
             left is MInteger && right is MInteger -> evalIntegerInfixExpression(operator, left, right)
             left.type != right.type -> MError.TypeMismatch("$left $operator $right")
             else -> evalBooleanInfixExpression(operator, left, right)
