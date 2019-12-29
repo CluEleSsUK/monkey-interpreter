@@ -21,6 +21,7 @@ object Null : MObject("NULL") {
 sealed class MError(message: String) : MObject("ERROR") {
     data class TypeMismatch(val expression: String) : MError("Type mismatch: $expression")
     data class UnknownOperator(val expression: String) : MError("Unknown operator: $expression")
+    data class UnknownIdentifier(val identifier: String) : MError("Unknown identifier: $identifier")
 }
 
 val True = MBoolean(true)
@@ -28,6 +29,9 @@ val False = MBoolean(false)
 
 
 class MonkeyRuntime {
+
+    private val environment = Environment()
+
     fun eval(node: Node): MObject =
         when (node) {
             is Program -> evalStatements(node.statements)
@@ -39,6 +43,8 @@ class MonkeyRuntime {
             is IfExpression -> evalIfExpression(node)
             is BlockStatement -> evalStatements(node.statements)
             is ReturnStatement -> MReturnValue(eval(node.returnValue))
+            is LetStatement -> evalLetStatement(node)
+            is Identifier -> environment.get(node)
             else -> Null
         }
 
@@ -134,6 +140,16 @@ class MonkeyRuntime {
         }
 
         return eval(expression.alternative)
+    }
+
+    private fun evalLetStatement(node: LetStatement): MObject {
+        val varName = node.name.value
+        val value = eval(node.value)
+        if (value is Error) {
+            return value
+        }
+
+        return environment.set(varName, value)
     }
 
     private fun isTruthy(obj: MObject): Boolean =

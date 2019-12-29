@@ -196,4 +196,25 @@ class EvalKtTest extends Specification {
         }
         """                | new MError.UnknownOperator("${new MBoolean(true)} + ${new MBoolean(false)}")
     }
+
+    def "Variable bindings return their value when evaluation, and an error if they are unbound"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                     | expected
+        "let a = 5; a;"           | new MInteger(5)
+        "let a = 5 * 5; a;"       | new MInteger(25)
+        "let a = 5; let b = a; b" | new MInteger(5)
+        """
+        let a = 5;
+        let b = a;
+        let c = b + a + 5;
+        c;
+        """                       | new MInteger(15)
+        "a"                       | new MError.UnknownIdentifier("a")
+    }
 }
