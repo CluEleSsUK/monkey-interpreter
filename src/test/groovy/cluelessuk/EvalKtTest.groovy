@@ -253,4 +253,21 @@ class EvalKtTest extends Specification {
         "fn(x) { x; }(5);"                                 | new MInteger(5)
     }
 
+    def "Closures have their own scope"() {
+        given:
+        def input = """
+            let adder = fn(x) {
+                fn(y) { x + y };
+            }
+            
+            let addTwo = adder(2);
+            addTwo(2);
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result == new MInteger(4)
+    }
 }

@@ -19,14 +19,14 @@ class Scope(private val outer: Scope? = null) {
     }
 
     companion object {
-        fun functionScope(func: MFunction, args: List<MObject>, enclosingScope: Scope): Scope {
-            val scope = Scope(enclosingScope)
+        fun functionScope(func: MFunction, args: List<MObject>): Scope {
+            val localScope = Scope(func.scope)
 
             func.parameters.forEachIndexed { index, param ->
-                scope.set(param.value, args[index])
+                localScope.set(param.value, args[index])
             }
 
-            return scope
+            return localScope
         }
     }
 }

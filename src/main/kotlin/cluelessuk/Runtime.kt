@@ -172,15 +172,15 @@ class MonkeyRuntime {
             }
         }
 
-        return applyFunction(func, evaluatedArgs, scope)
+        return applyFunction(func, evaluatedArgs)
     }
 
-    private fun applyFunction(func: MObject, args: List<MObject>, outerScope: Scope): MObject {
+    private fun applyFunction(func: MObject, args: List<MObject>): MObject {
         if (func !is MFunction) {
             return MError.TypeMismatch("Expected function but got ${func.type}")
         }
 
-        val functionScope = Scope.functionScope(func, args, outerScope)
+        val functionScope = Scope.functionScope(func, args)
         val result = eval(func.body, functionScope)
 
         return if (result is MReturnValue) {
