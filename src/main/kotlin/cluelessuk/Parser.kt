@@ -10,6 +10,7 @@ class Parser(var lexer: Lexer) {
     private val prefixParseFunctions = mapOf<TokenType, PrefixParseFun>(
         Tokens.IDENT to this::parseIdentifier,
         Tokens.INT to this::parseIntegerLiteral,
+        Tokens.STRING to this::parseStringLiteral,
         Tokens.BANG to this::parsePrefixExpression,
         Tokens.MINUS to this::parsePrefixExpression,
         Tokens.TRUE to this::parseBoolean,
@@ -137,6 +138,12 @@ class Parser(var lexer: Lexer) {
             raiseError("Could not parse ${lexer.token} as integer!")
             null
         }
+    }
+
+    private fun parseStringLiteral(): StringLiteral? {
+        val currentToken = lexer.token ?: return null
+
+        return StringLiteral(currentToken, currentToken.literal)
     }
 
     private fun parseBoolean(): BooleanLiteral? {

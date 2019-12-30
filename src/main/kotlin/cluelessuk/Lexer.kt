@@ -36,6 +36,7 @@ data class Lexer @JvmOverloads constructor(
             '>' -> readAndIncrement(Tokens.GT)
             '=' -> readEquals()
             '!' -> readBang()
+            '"' -> readString()
             '0' -> this.copy(token = EndOfFile)
             else -> readNonSyntax()
         }
@@ -90,6 +91,17 @@ data class Lexer @JvmOverloads constructor(
             return readAndIncrement(Tokens.BANG)
         }
         return this.copy(token = Token(Tokens.NOT_EQ, "!="), position = position + 2)
+    }
+
+    private fun readString(): Lexer {
+        val positionAfterDoubleQuote = position + 1
+        val lastIdentifierIndex = lookAheadWhile(positionAfterDoubleQuote) { code[it] != '"' }
+        val stringValue = code.slice(positionAfterDoubleQuote until lastIdentifierIndex)
+        val nextToken = Token(
+            type = Tokens.STRING,
+            literal = stringValue
+        )
+        return this.copy(token = nextToken, position = lastIdentifierIndex + 1)
     }
 
     private fun lookAheadWhile(next: Int, predicate: (position: Int) -> Boolean): Int {

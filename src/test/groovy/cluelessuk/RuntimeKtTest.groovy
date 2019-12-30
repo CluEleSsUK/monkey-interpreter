@@ -2,7 +2,7 @@ package cluelessuk
 
 import spock.lang.Specification
 
-class EvalKtTest extends Specification {
+class RuntimeKtTest extends Specification {
 
     def evaluator = new MonkeyRuntime()
     def static True = new MBoolean(true)
@@ -269,5 +269,44 @@ class EvalKtTest extends Specification {
 
         then:
         result == new MInteger(4)
+    }
+
+    def "String literals evaluate as the correct object representation"() {
+        given:
+        def input = """
+            "hello world"
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result == new MString("hello world")
+    }
+
+    def "String literals concatenate by appending"() {
+        given:
+        def input = """
+            "hello" + " " + "world"
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result == new MString("hello world")
+    }
+
+    def "Other operators for Strihg return an UnknownOperator error"() {
+        given:
+        def input = """
+            "hello" - "world"
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result == new MError.UnknownOperator("${new MString("hello")} - ${new MString("world")}")
     }
 }

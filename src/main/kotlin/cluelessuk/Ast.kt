@@ -22,7 +22,7 @@ data class Program(val statements: List<Statement>, val errors: List<String>) : 
         return statements.first().tokenLiteral()
     }
 
-    override fun toString(): String = statements.map { it.toString() }.reduce { a, b -> a + b }
+    override fun toString() = statements.map { it.toString() }.reduce { a, b -> a + b }
 }
 
 data class LetStatement(
@@ -32,7 +32,7 @@ data class LetStatement(
 ) : Statement() {
 
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = "(${tokenLiteral()} $name = $value)"
+    override fun toString() = "(${tokenLiteral()} $name = $value)"
 }
 
 data class ReturnStatement(
@@ -40,7 +40,7 @@ data class ReturnStatement(
     val returnValue: Expression
 ) : Statement() {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = "(${tokenLiteral()} $returnValue)"
+    override fun toString() = "(${tokenLiteral()} $returnValue)"
 }
 
 data class Identifier(
@@ -48,7 +48,7 @@ data class Identifier(
     val value: String
 ) : Expression() {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = value
+    override fun toString() = value
 }
 
 data class ExpressionStatement(
@@ -56,7 +56,7 @@ data class ExpressionStatement(
     val expression: Expression
 ) : Statement() {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = expression.toString()
+    override fun toString() = expression.toString()
 }
 
 data class IntegerLiteral(
@@ -64,7 +64,7 @@ data class IntegerLiteral(
     val value: Int
 ) : Expression() {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = tokenLiteral()
+    override fun toString() = tokenLiteral()
 }
 
 data class BooleanLiteral(
@@ -72,7 +72,15 @@ data class BooleanLiteral(
     val value: Boolean
 ) : Expression() {
     override fun tokenLiteral() = token.literal
-    override fun toString(): String = tokenLiteral()
+    override fun toString() = tokenLiteral()
+}
+
+data class StringLiteral(
+    val token: Token,
+    val value: String
+) : Expression() {
+    override fun tokenLiteral() = token.literal
+    override fun toString() = value
 }
 
 data class PrefixExpression(

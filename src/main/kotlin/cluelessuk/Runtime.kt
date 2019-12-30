@@ -10,6 +10,8 @@ data class MBoolean(val value: Boolean) : MObject("BOOLEAN") {
     }
 }
 
+data class MString(val value: String) : MObject("STRING")
+
 data class MReturnValue(val value: MObject) : MObject("RETURN")
 object Null : MObject("NULL") {
     // doesn't play nice with groovy without an overridden equals
@@ -41,6 +43,7 @@ class MonkeyRuntime {
             is ExpressionStatement -> eval(node.expression, scope)
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> MBoolean.of(node.value)
+            is StringLiteral -> MString(node.value)
             is FunctionLiteral -> MFunction(node.arguments, node.body, scope)
             is PrefixExpression -> evalPrefixExpression(node, scope)
             is InfixExpression -> evalInfixExpression(node, scope)
@@ -109,10 +112,17 @@ class MonkeyRuntime {
             left is MError -> left
             right is MError -> right
             left is MInteger && right is MInteger -> evalIntegerInfixExpression(operator, left, right)
+            left is MString && right is MString -> evalStringInfixExpression(operator, left, right)
             left.type != right.type -> MError.TypeMismatch("$left $operator $right")
             else -> evalBooleanInfixExpression(operator, left, right)
         }
     }
+
+    private fun evalStringInfixExpression(operator: String, left: MString, right: MString): MObject =
+        when (operator) {
+            "+" -> MString(left.value + right.value)
+            else -> MError.UnknownOperator("$left $operator $right")
+        }
 
     private fun evalIntegerInfixExpression(operator: String, left: MInteger, right: MInteger): MObject =
         when (operator) {

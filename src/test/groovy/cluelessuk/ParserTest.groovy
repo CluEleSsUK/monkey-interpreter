@@ -362,4 +362,19 @@ class ParserTest extends Specification {
                 )
         )
     }
+
+    def "String literal expression parses to the correct representation"() {
+        given:
+        def input = """ "Hello world" """
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        !program.hasErrors()
+        program.statements.get(0) == new ExpressionStatement(
+                new Token(Tokens.STRING, "Hello world"),
+                new StringLiteral(new Token(Tokens.STRING, "Hello world"), "Hello world")
+        )
+    }
 }

@@ -107,6 +107,18 @@ class LexerTest extends spock.lang.Specification {
         actual == expectedResult
     }
 
+    def "Double quotes parse to string token"() {
+        given:
+        def input = """ "this is a string" """
+        def expected = [new Token(Tokens.STRING, "this is a string"), new Token(Tokens.EOF, "")]
+
+        when:
+        def actual = readAll(new Lexer(input))
+
+        then:
+        actual == expected
+    }
+
     private static def readAll(Lexer lexer) {
         def output = []
         while (lexer.hasMore()) {
