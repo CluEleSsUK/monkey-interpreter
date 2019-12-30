@@ -214,7 +214,43 @@ class EvalKtTest extends Specification {
         let b = a;
         let c = b + a + 5;
         c;
-        """                       | new MInteger(15)
+        """            | new MInteger(15)
         "a"                       | new MError.UnknownIdentifier("a")
     }
+
+    def "Functions evaluate to the correct object representation"() {
+        given:
+        def input = "fn(x) { x + 2 };"
+        def expectedIdentifier = new Identifier(new Token(Tokens.IDENT, "x"), "x")
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result instanceof MFunction
+        def resultFunction = (MFunction) result
+        resultFunction.parameters == [expectedIdentifier]
+        resultFunction.body.statements.size() == 1
+        resultFunction.body.statements.get(0) instanceof ExpressionStatement
+        def expressionStatement = (ExpressionStatement) resultFunction.body.statements.get(0)
+        expressionStatement.expression instanceof InfixExpression
+    }
+
+    def "Functions can be applied to values or expressions to return values"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                                              | expected
+        "let identity = fn(x) { x; }; identity(5);"        | new MInteger(5)
+        "let identity = fn(x) { return x; }; identity(5);" | new MInteger(5)
+        "let double = fn(x) { x * 2 }; double(5);"         | new MInteger(10)
+        "let add = fn(x, y) { x + y }; add(2, 3);"         | new MInteger(5)
+        "let add = fn(x, y) { x + y }; add(2, add(2, 2));" | new MInteger(6)
+        "fn(x) { x; }(5);"                                 | new MInteger(5)
+    }
+
 }

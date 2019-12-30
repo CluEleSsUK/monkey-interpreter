@@ -18,6 +18,8 @@ object Null : MObject("NULL") {
     }
 }
 
+data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("OBJECT")
+
 sealed class MError(message: String) : MObject("ERROR") {
     data class TypeMismatch(val expression: String) : MError("Type mismatch: $expression")
     data class UnknownOperator(val expression: String) : MError("Unknown operator: $expression")
@@ -30,30 +32,32 @@ val False = MBoolean(false)
 
 class MonkeyRuntime {
 
-    private val environment = Environment()
+    private val globalScope = Scope()
 
-    fun eval(node: Node): MObject =
+    fun eval(node: Node): MObject = eval(node, globalScope)
+    private fun eval(node: Node, scope: Scope): MObject =
         when (node) {
-            is Program -> evalStatements(node.statements)
-            is ExpressionStatement -> eval(node.expression)
+            is Program -> evalStatements(node.statements, scope)
+            is ExpressionStatement -> eval(node.expression, scope)
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> MBoolean.of(node.value)
-            is PrefixExpression -> evalPrefixExpression(node)
-            is InfixExpression -> evalInfixExpression(node)
-            is IfExpression -> evalIfExpression(node)
-            is BlockStatement -> evalStatements(node.statements)
-            is ReturnStatement -> MReturnValue(eval(node.returnValue))
-            is LetStatement -> evalLetStatement(node)
-            is Identifier -> environment.get(node)
-            else -> Null
+            is FunctionLiteral -> MFunction(node.arguments, node.body, scope)
+            is PrefixExpression -> evalPrefixExpression(node, scope)
+            is InfixExpression -> evalInfixExpression(node, scope)
+            is IfExpression -> evalIfExpression(node, scope)
+            is BlockStatement -> evalStatements(node.statements, scope)
+            is ReturnStatement -> MReturnValue(eval(node.returnValue, scope))
+            is LetStatement -> evalLetStatement(node, scope)
+            is Identifier -> scope.get(node)
+            is CallExpression -> evalCallExpression(node, scope)
         }
 
-    private fun evalStatements(statements: List<Statement>): MObject {
+    private fun evalStatements(statements: List<Statement>, scope: Scope): MObject {
         if (statements.isEmpty()) {
             return Null
         }
 
-        val currentValue = eval(statements.first())
+        val currentValue = eval(statements.first(), scope)
         if (statements.size == 1) {
             return currentValue
         }
@@ -64,12 +68,12 @@ class MonkeyRuntime {
                 else -> currentValue
             }
             is MError -> currentValue
-            else -> evalStatements(statements.drop(1))
+            else -> evalStatements(statements.drop(1), scope)
         }
     }
 
-    private fun evalPrefixExpression(expression: PrefixExpression): MObject {
-        val right = eval(expression.right)
+    private fun evalPrefixExpression(expression: PrefixExpression, scope: Scope): MObject {
+        val right = eval(expression.right, scope)
         if (right is MError) {
             return right
         }
@@ -96,10 +100,10 @@ class MonkeyRuntime {
             else -> MError.UnknownOperator("-$right")
         }
 
-    private fun evalInfixExpression(expression: InfixExpression): MObject {
+    private fun evalInfixExpression(expression: InfixExpression, scope: Scope): MObject {
         val operator = expression.operator
-        val left = eval(expression.left)
-        val right = eval(expression.right)
+        val left = eval(expression.left, scope)
+        val right = eval(expression.right, scope)
 
         return when {
             left is MError -> left
@@ -128,28 +132,62 @@ class MonkeyRuntime {
             else -> MError.UnknownOperator("$left $operator $right")
         }
 
-    private fun evalIfExpression(expression: IfExpression): MObject {
-        val condition = eval(expression.condition)
+    private fun evalIfExpression(expression: IfExpression, scope: Scope): MObject {
+        val condition = eval(expression.condition, scope)
 
         if (isTruthy(condition)) {
-            return eval(expression.consequence)
+            return eval(expression.consequence, scope)
         }
 
         if (expression.alternative == null) {
             return Null
         }
 
-        return eval(expression.alternative)
+        return eval(expression.alternative, scope)
     }
 
-    private fun evalLetStatement(node: LetStatement): MObject {
+    private fun evalLetStatement(node: LetStatement, scope: Scope): MObject {
         val varName = node.name.value
-        val value = eval(node.value)
+        val value = eval(node.value, scope)
         if (value is Error) {
             return value
         }
 
-        return environment.set(varName, value)
+        return scope.set(varName, value)
+    }
+
+    private fun evalCallExpression(node: CallExpression, scope: Scope): MObject {
+        val func = eval(node.function, scope)
+
+        if (func is MError) {
+            return func
+        }
+
+        val evaluatedArgs = node.arguments.map {
+            val result = eval(it, scope)
+            if (result is MError) {
+                return@evalCallExpression result
+            } else {
+                result
+            }
+        }
+
+        return applyFunction(func, evaluatedArgs, scope)
+    }
+
+    private fun applyFunction(func: MObject, args: List<MObject>, outerScope: Scope): MObject {
+        if (func !is MFunction) {
+            return MError.TypeMismatch("Expected function but got ${func.type}")
+        }
+
+        val functionScope = Scope.functionScope(func, args, outerScope)
+        val result = eval(func.body, functionScope)
+
+        return if (result is MReturnValue) {
+            result.value
+        } else {
+            result
+        }
     }
 
     private fun isTruthy(obj: MObject): Boolean =
