@@ -78,8 +78,7 @@ class MonkeyRuntime {
     }
 
     private fun evalIdentifier(identifier: Identifier, scope: Scope): MObject {
-        val variableName = identifier.value
-        return scope.get(identifier) ?: builtinFunctions[variableName] ?: MError.UnknownIdentifier(variableName)
+        return scope.get(identifier)
     }
 
     private fun evalPrefixExpression(expression: PrefixExpression, scope: Scope): MObject {
