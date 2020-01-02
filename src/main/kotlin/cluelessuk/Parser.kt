@@ -17,7 +17,8 @@ class Parser(var lexer: Lexer) {
         Tokens.FALSE to this::parseBoolean,
         Tokens.LPAREN to this::parseGroupedExpression,
         Tokens.IF to this::parseIfExpression,
-        Tokens.FUNCTION to this::parseFunctionExpression
+        Tokens.FUNCTION to this::parseFunctionExpression,
+        Tokens.LBRACKET to this::parseArrayExpression
     )
 
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
@@ -188,7 +189,12 @@ class Parser(var lexer: Lexer) {
         var leftExpression = prefixParseFunctions[currentToken.type]?.invoke() ?: return null
         var nextToken = peekToken()
 
-        while (nextToken != null && nextToken.type != Tokens.SEMICOLON && precedence.ordinal < precedenceOf(nextToken).ordinal) {
+        while (
+            nextToken != null &&
+            nextToken.type != Tokens.SEMICOLON &&
+            nextToken.type != Tokens.EOF &&
+            precedence.ordinal < precedenceOf(nextToken).ordinal
+        ) {
             val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
             leftExpression = infixFunc(leftExpression) ?: leftExpression
             nextToken = peekToken()
@@ -214,6 +220,25 @@ class Parser(var lexer: Lexer) {
         }
 
         return InfixExpression(infixToken, left, infixToken.literal, right)
+    }
+
+    private fun parseArrayExpression(): ArrayLiteral? {
+        val startToken = lexer.token ?: return null
+        var elements = listOf<Expression>()
+
+        while (peekToken()?.type != Tokens.RBRACKET && peekToken()?.type != Tokens.EOF) {
+            if (peekToken()?.type == Tokens.COMMA) {
+                consumeToken()
+                continue
+            }
+
+            parseExpression(OperatorPrecedence.LOWEST)?.let {
+                elements = elements.plus(it)
+            }
+        }
+
+        consumeTokenAndAssertType(Tokens.RBRACKET)
+        return ArrayLiteral(startToken, elements)
     }
 
     private fun peekToken(): Token? {

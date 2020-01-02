@@ -129,6 +129,14 @@ data class FunctionLiteral(
     override fun toString() = "fn(${arguments.joinToString(",")}) $body"
 }
 
+data class ArrayLiteral(
+    val token: Token,
+    val elements: List<Expression>
+) : Expression() {
+    override fun tokenLiteral() = token.literal
+    override fun toString() = "[${elements.joinToString(",")}]"
+}
+
 data class CallExpression(
     val token: Token,
     val function: Expression,

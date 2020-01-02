@@ -377,4 +377,45 @@ class ParserTest extends Specification {
                 new StringLiteral(new Token(Tokens.STRING, "Hello world"), "Hello world")
         )
     }
+
+    def "Array literals are parsed regardless of elements"(String input, ArrayLiteral expected) {
+        given:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        expect:
+        !program.hasErrors()
+        program.statements.size() == 1
+        program.getStatements().get(0) instanceof ExpressionStatement
+        def expression = (ExpressionStatement) program.getStatements().get(0)
+        expression.expression == expected
+
+        where:
+        input                    | expected
+        "[]"                     | new ArrayLiteral(new Token(Tokens.LBRACKET, "["), [])
+        "[1]"                    | new ArrayLiteral(new Token(Tokens.LBRACKET, "["), [new IntegerLiteral(new Token(Tokens.INT, "1"), 1)])
+        "[1, 2]"                 | new ArrayLiteral(new Token(Tokens.LBRACKET, "["), [new IntegerLiteral(new Token(Tokens.INT, "1"), 1), new IntegerLiteral(new Token(Tokens.INT, "2"), 2)])
+        "[1, true, \"blah\"]"    | new ArrayLiteral(new Token(Tokens.LBRACKET, "["), [new IntegerLiteral(new Token(Tokens.INT, "1"), 1), new BooleanLiteral(new Token(Tokens.TRUE, "true"), true), new StringLiteral(new Token(Tokens.STRING, "blah"), "blah")])
+        "[1 * 2, \"a\" + \"b\"]" | new ArrayLiteral(new Token(Tokens.LBRACKET, "["), [
+                new InfixExpression(new Token(Tokens.ASTERISK, "*"),
+                        new IntegerLiteral(new Token(Tokens.INT, "1"), 1),
+                        "*",
+                        new IntegerLiteral(new Token(Tokens.INT, "2"), 2)
+                ),
+                new InfixExpression(new Token(Tokens.PLUS, "+"),
+                        new StringLiteral(new Token(Tokens.STRING, "a"), "a"),
+                        "+",
+                        new StringLiteral(new Token(Tokens.STRING, "b"), "b"),
+                )])
+    }
+
+    def "Array literals that aren't terminated blow up"() {
+        given:
+        def input = "[1, 2, 3"
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        program.hasErrors()
+    }
 }

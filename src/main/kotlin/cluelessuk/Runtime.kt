@@ -11,7 +11,9 @@ data class MBoolean(val value: Boolean) : MObject("BOOLEAN") {
 }
 
 data class MString(val value: String) : MObject("STRING")
-
+data class MArray(val elements: List<MObject>) : MObject("ARRAY")
+data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("OBJECT")
+data class BuiltinFunction(val f: (List<MObject>) -> MObject) : MObject("BUILTIN-FUNCTION")
 data class MReturnValue(val value: MObject) : MObject("RETURN")
 object Null : MObject("NULL") {
     // doesn't play nice with groovy without an overridden equals
@@ -19,9 +21,6 @@ object Null : MObject("NULL") {
         return other is Null
     }
 }
-
-data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("OBJECT")
-data class BuiltinFunction(val f: (List<MObject>) -> MObject) : MObject("BUILTIN-FUNCTION")
 
 sealed class MError(message: String) : MObject("ERROR") {
     data class TypeMismatch(val expression: String) : MError("Type mismatch: $expression")
@@ -47,6 +46,7 @@ class MonkeyRuntime {
             is BooleanLiteral -> MBoolean.of(node.value)
             is StringLiteral -> MString(node.value)
             is FunctionLiteral -> MFunction(node.arguments, node.body, scope)
+            is ArrayLiteral -> evalArrayExpression(node, scope)
             is PrefixExpression -> evalPrefixExpression(node, scope)
             is InfixExpression -> evalInfixExpression(node, scope)
             is IfExpression -> evalIfExpression(node, scope)
@@ -147,6 +147,10 @@ class MonkeyRuntime {
             "!=" -> MBoolean.of(left != right)
             else -> MError.UnknownOperator("$left $operator $right")
         }
+
+    private fun evalArrayExpression(literal: ArrayLiteral, scope: Scope): MObject {
+        return MArray(literal.elements.map { eval(it, scope) })
+    }
 
     private fun evalIfExpression(expression: IfExpression, scope: Scope): MObject {
         val condition = eval(expression.condition, scope)

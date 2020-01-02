@@ -119,6 +119,25 @@ class LexerTest extends spock.lang.Specification {
         actual == expected
     }
 
+    def "Square brackets for array are parsed to to relevatn tokens"() {
+        given:
+        def input = "[1, 2, 3]"
+        def expected = [
+                new Token(Tokens.LBRACKET, "["),
+                new Token(Tokens.INT, "1"), new Token(Tokens.COMMA, ","),
+                new Token(Tokens.INT, "2"), new Token(Tokens.COMMA, ","),
+                new Token(Tokens.INT, "3"),
+                new Token(Tokens.RBRACKET, "]"),
+                new Token(Tokens.EOF, "")
+        ]
+
+        when:
+        def actual = readAll(new Lexer(input))
+
+        then:
+        actual == expected
+    }
+
     private static def readAll(Lexer lexer) {
         def output = []
         while (lexer.hasMore()) {

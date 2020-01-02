@@ -297,7 +297,7 @@ class RuntimeKtTest extends Specification {
         result == new MString("hello world")
     }
 
-    def "Other operators for Strihg return an UnknownOperator error"() {
+    def "Other operators for String return an UnknownOperator error"() {
         given:
         def input = """
             "hello" - "world"
@@ -308,5 +308,43 @@ class RuntimeKtTest extends Specification {
 
         then:
         result == new MError.UnknownOperator("${new MString("hello")} - ${new MString("world")}")
+    }
+
+    def "Array elements are evaluated on creation"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                    | expected
+        "[1, 2]"                 | new MArray([new MInteger(1), new MInteger(2)])
+        """[1 * 2, "a" + "b"]""" | new MArray([new MInteger(2), new MString("ab")])
+        """[len("blah")]"""      | new MArray([new MInteger(4)])
+    }
+
+    def "Array elements can contain function literals as values"() {
+        given:
+        def input = """
+            [fn (x) { x }, 1]
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result instanceof MArray
+        def resultArray = (MArray) result
+        resultArray.elements.size() == 2
+        resultArray.elements.get(0) instanceof MFunction
+        resultArray.elements.get(1) == new MInteger(1)
+
+        def resultFunction = (MFunction) resultArray.elements.get(0)
+        resultFunction.parameters == [new Identifier(new Token(Tokens.IDENT, "x"), "x")]
+        resultFunction.body == new BlockStatement(
+                new Token(Tokens.LBRACE, "{"),
+                [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]
+        )
     }
 }

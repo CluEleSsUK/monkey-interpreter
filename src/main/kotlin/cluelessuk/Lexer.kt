@@ -26,6 +26,8 @@ data class Lexer @JvmOverloads constructor(
             ',' -> readAndIncrement(Tokens.COMMA)
             '(' -> readAndIncrement(Tokens.LPAREN)
             ')' -> readAndIncrement(Tokens.RPAREN)
+            '[' -> readAndIncrement(Tokens.LBRACKET)
+            ']' -> readAndIncrement(Tokens.RBRACKET)
             '{' -> readAndIncrement(Tokens.LBRACE)
             '}' -> readAndIncrement(Tokens.RBRACE)
             '+' -> readAndIncrement(Tokens.PLUS)

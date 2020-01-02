@@ -34,7 +34,9 @@ enum class Tokens {
     RETURN,
     NOT_EQ,
     EQ,
-    STRING
+    STRING,
+    LBRACKET,
+    RBRACKET
 }
 
 val keywords = mapOf(
