@@ -23,6 +23,7 @@ object Null : MObject("NULL") {
 }
 
 sealed class MError(message: String) : MObject("ERROR") {
+    data class ParseError(val errors: List<String>) : MError("Programs with parse errors cannot be evaluated: \n ${errors.joinToString("\n")}")
     data class TypeMismatch(val expression: String) : MError("Type mismatch: $expression")
     data class UnknownOperator(val expression: String) : MError("Unknown operator: $expression")
     data class UnknownIdentifier(val identifier: String) : MError("Unknown identifier: $identifier")
@@ -40,7 +41,7 @@ class MonkeyRuntime {
     fun eval(node: Node): MObject = eval(node, globalScope)
     private fun eval(node: Node, scope: Scope): MObject =
         when (node) {
-            is Program -> evalStatements(node.statements, scope)
+            is Program -> evalProgram(node, scope)
             is ExpressionStatement -> eval(node.expression, scope)
             is IntegerLiteral -> MInteger(node.value)
             is BooleanLiteral -> MBoolean.of(node.value)
@@ -57,6 +58,14 @@ class MonkeyRuntime {
             is CallExpression -> evalCallExpression(node, scope)
             is IndexExpression -> evalIndexExpression(node, scope)
         }
+
+    private fun evalProgram(program: Program, scope: Scope): MObject {
+        if (program.hasErrors()) {
+            return MError.ParseError(program.errors)
+        }
+
+        return evalStatements(program.statements, scope)
+    }
 
     private fun evalStatements(statements: List<Statement>, scope: Scope): MObject {
         if (statements.isEmpty()) {
@@ -150,7 +159,14 @@ class MonkeyRuntime {
         }
 
     private fun evalArrayExpression(literal: ArrayLiteral, scope: Scope): MObject {
-        return MArray(literal.elements.map { eval(it, scope) })
+        return MArray(literal.elements.map {
+            val result = eval(it, scope)
+            if (result is MError) {
+                return result
+            }
+
+            result
+        })
     }
 
     private fun evalIfExpression(expression: IfExpression, scope: Scope): MObject {

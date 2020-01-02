@@ -357,13 +357,25 @@ class RuntimeKtTest extends Specification {
         result == expected
 
         where:
-        input                                            | expected
-        "[0, 1, 2][0]"                                   | new MInteger(0)
-        "[0, 1, 2][1]"                                   | new MInteger(1)
-        "[0, 1, 2][2]"                                   | new MInteger(2)
-        "[0, 1, 2][3]"                                   | Null
-        "[0, 1, 2][-1]"                                  | Null
-        "let i = 0; let arr = [1, 2, 3]; arr[i]"         | new MInteger(1)
+        input                                     | expected
+        "[0, 1, 2][0]"                            | new MInteger(0)
+        "[0, 1, 2][1]"                            | new MInteger(1)
+        "[0, 1, 2][2]"                            | new MInteger(2)
+        "[0, 1, 2][3]"                            | Null
+        "[0, 1, 2][-1]"                           | Null
+        "let i = 0; let arr = [1, 2, 3]; arr[i]"  | new MInteger(1)
         "let arr = [1, 2, 3]; let x = arr[1]; x;" | new MInteger(2)
     }
+
+    def "Runtime returns error when passing a program with a parse error"() {
+        given:
+        def input = "[1, 2, 3"
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result instanceof MError.ParseError
+    }
+
 }

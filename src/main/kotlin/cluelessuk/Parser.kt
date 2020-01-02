@@ -96,7 +96,7 @@ class Parser(var lexer: Lexer) {
         val startToken = consumeTokenAndAssertType(Tokens.LBRACE) ?: return null
         var statements = listOf<Statement>()
 
-        while (peekToken()?.type != Tokens.RBRACE && peekToken()?.type != Tokens.EOF) {
+        while (peekToken()?.type != Tokens.RBRACE && !endOfFileOrError()) {
             parseStatement()?.let {
                 statements = statements.plus(it)
             }
@@ -164,16 +164,16 @@ class Parser(var lexer: Lexer) {
         val startToken = consumeTokenAndAssertType(Tokens.LPAREN) ?: return null
         var args = listOf<Expression>()
 
-        while (peekToken()?.type != Tokens.RPAREN) {
+        while (peekToken()?.type != Tokens.RPAREN && !endOfFileOrError()) {
             if (peekToken()?.type == Tokens.COMMA) {
                 consumeToken()
                 continue
             }
 
-            parseExpression(OperatorPrecedence.LOWEST)?.let {
-                args = args.plus(it)
-            }
+            val arg = parseExpression(OperatorPrecedence.LOWEST) ?: return null
+            args = args.plus(arg)
         }
+        consumeTokenAndAssertType(Tokens.RPAREN) ?: return null
 
         return CallExpression(startToken, left, args)
     }
@@ -193,8 +193,8 @@ class Parser(var lexer: Lexer) {
         while (
             nextToken != null &&
             nextToken.type != Tokens.SEMICOLON &&
-            nextToken.type != Tokens.EOF &&
-            precedence.ordinal < precedenceOf(nextToken).ordinal
+            precedence.ordinal < precedenceOf(nextToken).ordinal &&
+            !endOfFileOrError()
         ) {
             val infixFunc = infixParseFunctions[nextToken.type] ?: { null }
             leftExpression = infixFunc(leftExpression) ?: leftExpression
@@ -227,18 +227,22 @@ class Parser(var lexer: Lexer) {
         val startToken = lexer.token ?: return null
         var elements = listOf<Expression>()
 
-        while (peekToken()?.type != Tokens.RBRACKET && peekToken()?.type != Tokens.EOF) {
+        while (peekToken()?.type != Tokens.RBRACKET && !endOfFileOrError()) {
             if (peekToken()?.type == Tokens.COMMA) {
                 consumeToken()
                 continue
             }
 
-            parseExpression(OperatorPrecedence.LOWEST)?.let {
-                elements = elements.plus(it)
+            val element = parseExpression(OperatorPrecedence.LOWEST)
+            if (element == null) {
+                // parser has likely errored, but
+                consumeToken()
+            } else {
+                elements = elements.plus(element)
             }
         }
 
-        consumeTokenAndAssertType(Tokens.RBRACKET)
+        consumeTokenAndAssertType(Tokens.RBRACKET) ?: return null
         return ArrayLiteral(startToken, elements)
     }
 
@@ -270,6 +274,10 @@ class Parser(var lexer: Lexer) {
             return null
         }
         return nextToken
+    }
+
+    private fun endOfFileOrError(): Boolean {
+        return peekToken()?.type == Tokens.EOF || errors.isNotEmpty()
     }
 
     private fun raiseError(message: String) {

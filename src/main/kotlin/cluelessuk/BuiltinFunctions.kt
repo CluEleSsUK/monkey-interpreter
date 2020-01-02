@@ -9,6 +9,7 @@ fun len(args: List<MObject>): MObject {
 
     return when (val arg = args[0]) {
         is MString -> MInteger(arg.value.length)
+        is MArray -> MInteger(arg.elements.size)
         else -> MError.TypeMismatch("len(${args[0]})")
     }
 }
