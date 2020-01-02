@@ -418,4 +418,32 @@ class ParserTest extends Specification {
         then:
         program.hasErrors()
     }
+
+    def "Index expressions are parsed and account for operator precedence"() {
+        given:
+        def input = "myArray[1 + 1 * 2]"
+        def expected = new IndexExpression(
+                new Token(Tokens.LBRACKET, "["),
+                new Identifier(new Token(Tokens.IDENT, "myArray"), "myArray"),
+                new InfixExpression(
+                        new Token(Tokens.PLUS, "+"),
+                        new IntegerLiteral(new Token(Tokens.INT, "1"), 1), "+",
+                        new InfixExpression(
+                                new Token(Tokens.ASTERISK, "*"),
+                                new IntegerLiteral(new Token(Tokens.INT, "1"), 1),
+                                "*",
+                                new IntegerLiteral(new Token(Tokens.INT, "2"), 2),
+                        )
+                )
+        )
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        program.statements.size() == 1
+        program.getStatements().get(0) instanceof ExpressionStatement
+        def expression = (ExpressionStatement) program.getStatements().get(0)
+        expression.expression == expected
+    }
 }

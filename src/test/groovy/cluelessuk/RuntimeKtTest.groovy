@@ -1,6 +1,7 @@
 package cluelessuk
 
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class RuntimeKtTest extends Specification {
 
@@ -346,5 +347,23 @@ class RuntimeKtTest extends Specification {
                 new Token(Tokens.LBRACE, "{"),
                 [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]
         )
+    }
+
+    def "Evaluation of array indexing returns the correct value, or null if invalid index"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                                            | expected
+        "[0, 1, 2][0]"                                   | new MInteger(0)
+        "[0, 1, 2][1]"                                   | new MInteger(1)
+        "[0, 1, 2][2]"                                   | new MInteger(2)
+        "[0, 1, 2][3]"                                   | Null
+        "[0, 1, 2][-1]"                                  | Null
+        "let i = 0; let arr = [1, 2, 3]; arr[i]"         | new MInteger(1)
+        "let arr = [1, 2, 3]; let x = arr[1]; x;" | new MInteger(2)
     }
 }

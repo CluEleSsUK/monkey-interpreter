@@ -55,6 +55,7 @@ class MonkeyRuntime {
             is LetStatement -> evalLetStatement(node, scope)
             is Identifier -> evalIdentifier(node, scope)
             is CallExpression -> evalCallExpression(node, scope)
+            is IndexExpression -> evalIndexExpression(node, scope)
         }
 
     private fun evalStatements(statements: List<Statement>, scope: Scope): MObject {
@@ -193,6 +194,25 @@ class MonkeyRuntime {
         }
 
         return applyFunction(func, evaluatedArgs)
+    }
+
+    private fun evalIndexExpression(node: IndexExpression, scope: Scope): MObject {
+        val left = eval(node.left, scope)
+
+        if (left is MError) {
+            return left
+        }
+
+        val index = eval(node.index, scope)
+
+        return when {
+            index is MError -> index
+            left !is MArray -> MError.TypeMismatch("Index not supported for type ${left.type}")
+            index !is MInteger -> MError.TypeMismatch("Arrays cannot be indexed by ${index.type}")
+            index.value < 0 -> Null
+            index.value > left.elements.size - 1 -> Null
+            else -> left.elements[index.value]
+        }
     }
 
     private fun applyFunction(func: MObject, args: List<MObject>): MObject {

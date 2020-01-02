@@ -146,6 +146,15 @@ data class CallExpression(
     override fun toString() = "${function.tokenLiteral()}(${arguments.joinToString(", ")})"
 }
 
+data class IndexExpression(
+    val token: Token,
+    val left: Expression,
+    val index: Expression
+) : Expression() {
+    override fun tokenLiteral() = token.literal
+    override fun toString() = "$left[$index]"
+}
+
 enum class OperatorPrecedence {
     LOWEST,
     EQUALS,
@@ -153,7 +162,8 @@ enum class OperatorPrecedence {
     SUM,
     PRODUCT,
     PREFIX,
-    CALL
+    CALL,
+    INDEX
 }
 
 val precedences = mapOf(
@@ -165,7 +175,8 @@ val precedences = mapOf(
     Tokens.MINUS to OperatorPrecedence.SUM,
     Tokens.SLASH to OperatorPrecedence.PRODUCT,
     Tokens.ASTERISK to OperatorPrecedence.PRODUCT,
-    Tokens.LPAREN to OperatorPrecedence.CALL
+    Tokens.LPAREN to OperatorPrecedence.CALL,
+    Tokens.LBRACKET to OperatorPrecedence.INDEX
 )
 
 fun precedenceOf(token: Token): OperatorPrecedence {

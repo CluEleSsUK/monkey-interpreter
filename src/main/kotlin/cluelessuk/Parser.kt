@@ -30,7 +30,8 @@ class Parser(var lexer: Lexer) {
         Tokens.NOT_EQ to this::parseInfixExpression,
         Tokens.GT to this::parseInfixExpression,
         Tokens.LT to this::parseInfixExpression,
-        Tokens.LPAREN to this::parseFunctionCall
+        Tokens.LPAREN to this::parseFunctionCall,
+        Tokens.LBRACKET to this::parseIndexExpression
     )
 
     fun parseProgram(): Program {
@@ -239,6 +240,18 @@ class Parser(var lexer: Lexer) {
 
         consumeTokenAndAssertType(Tokens.RBRACKET)
         return ArrayLiteral(startToken, elements)
+    }
+
+    private fun parseIndexExpression(left: Expression): IndexExpression? {
+        val infixToken = consumeTokenAndAssertType(Tokens.LBRACKET)
+        val indexExpression = parseExpression(OperatorPrecedence.LOWEST)
+
+        if (infixToken == null || indexExpression == null) {
+            return null
+        }
+
+        consumeTokenAndAssertType(Tokens.RBRACKET)
+        return IndexExpression(infixToken, left, indexExpression)
     }
 
     private fun peekToken(): Token? {

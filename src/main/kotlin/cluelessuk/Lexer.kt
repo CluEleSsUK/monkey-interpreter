@@ -8,7 +8,7 @@ data class Lexer @JvmOverloads constructor(
     val token: Token? = null
 ) {
 
-    private val current: Char = if (position >= code.length) {
+    private val current: Char = if (position == code.length) {
         '0'
     } else {
         code[position]
@@ -39,7 +39,6 @@ data class Lexer @JvmOverloads constructor(
             '=' -> readEquals()
             '!' -> readBang()
             '"' -> readString()
-            '0' -> this.copy(token = EndOfFile)
             else -> readNonSyntax()
         }
     }
@@ -54,6 +53,7 @@ data class Lexer @JvmOverloads constructor(
 
     private fun readNonSyntax(): Lexer {
         return when {
+            position == code.length -> this.copy(token = EndOfFile)
             current.isWhitespace() -> incremented(null).nextToken()
             current.isLetterOrUnderscore() -> readIdentifier()
             current.isDigit() -> readNumber()
