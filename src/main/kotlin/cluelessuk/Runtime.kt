@@ -21,11 +21,13 @@ object Null : MObject("NULL") {
 }
 
 data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("OBJECT")
+data class BuiltinFunction(val f: (List<MObject>) -> MObject) : MObject("BUILTIN-FUNCTION")
 
 sealed class MError(message: String) : MObject("ERROR") {
     data class TypeMismatch(val expression: String) : MError("Type mismatch: $expression")
     data class UnknownOperator(val expression: String) : MError("Unknown operator: $expression")
     data class UnknownIdentifier(val identifier: String) : MError("Unknown identifier: $identifier")
+    data class IncorrectNumberOfArgs(val expectedCount: Int, val actualCount: Int) : MError("Invalid number of arguments.  Expected $expectedCount, got $actualCount")
 }
 
 val True = MBoolean(true)
@@ -51,7 +53,7 @@ class MonkeyRuntime {
             is BlockStatement -> evalStatements(node.statements, scope)
             is ReturnStatement -> MReturnValue(eval(node.returnValue, scope))
             is LetStatement -> evalLetStatement(node, scope)
-            is Identifier -> scope.get(node)
+            is Identifier -> evalIdentifier(node, scope)
             is CallExpression -> evalCallExpression(node, scope)
         }
 
@@ -73,6 +75,11 @@ class MonkeyRuntime {
             is MError -> currentValue
             else -> evalStatements(statements.drop(1), scope)
         }
+    }
+
+    private fun evalIdentifier(identifier: Identifier, scope: Scope): MObject {
+        val variableName = identifier.value
+        return scope.get(identifier) ?: builtinFunctions[variableName] ?: MError.UnknownIdentifier(variableName)
     }
 
     private fun evalPrefixExpression(expression: PrefixExpression, scope: Scope): MObject {
@@ -186,17 +193,19 @@ class MonkeyRuntime {
     }
 
     private fun applyFunction(func: MObject, args: List<MObject>): MObject {
-        if (func !is MFunction) {
-            return MError.TypeMismatch("Expected function but got ${func.type}")
-        }
+        return when (func) {
+            is BuiltinFunction -> func.f(args)
+            is MFunction -> {
+                val functionScope = Scope.functionScope(func, args)
+                val result = eval(func.body, functionScope)
 
-        val functionScope = Scope.functionScope(func, args)
-        val result = eval(func.body, functionScope)
-
-        return if (result is MReturnValue) {
-            result.value
-        } else {
-            result
+                return if (result is MReturnValue) {
+                    result.value
+                } else {
+                    result
+                }
+            }
+            else -> MError.TypeMismatch("Expected function but got ${func.type}")
         }
     }
 

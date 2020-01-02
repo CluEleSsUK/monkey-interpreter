@@ -11,11 +11,10 @@ class Scope(private val outer: Scope? = null) {
         return value
     }
 
-    fun get(identifier: Identifier): MObject {
+    fun get(identifier: Identifier): MObject? {
         val variableName = identifier.value
         return storage[variableName]
             ?: outer?.get(identifier)
-            ?: MError.UnknownIdentifier(variableName)
     }
 
     companion object {
