@@ -107,7 +107,11 @@ data class Lexer @JvmOverloads constructor(
     }
 
     private fun lookAheadWhile(next: Int, predicate: (position: Int) -> Boolean): Int {
-        if (next > code.length - 1 || !predicate(next)) {
+        if (next > code.length - 1) {
+            throw RuntimeException("Could not find required character in lookahead")
+        }
+
+        if (!predicate(next)) {
             return next
         }
 
