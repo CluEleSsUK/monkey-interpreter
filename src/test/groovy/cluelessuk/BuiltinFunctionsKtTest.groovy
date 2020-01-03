@@ -2,6 +2,8 @@ package cluelessuk
 
 import spock.lang.Specification
 
+import java.rmi.MarshalException
+
 class BuiltinFunctionsKtTest extends Specification {
 
     def evaluator = new MonkeyRuntime()
@@ -35,7 +37,7 @@ class BuiltinFunctionsKtTest extends Specification {
         where:
         input              | expected
         'first()'          | new MError.IncorrectNumberOfArgs(1, 0)
-        'first("blah")'    | new MError.TypeMismatch("Expected ARRAY got STRING")
+        'first("blah")'    | new MError.TypeMismatch("Function does not support type STRING")
         'first([])'        | Null
         'first([0, 1, 2])' | new MInteger(0)
     }
@@ -50,8 +52,44 @@ class BuiltinFunctionsKtTest extends Specification {
         where:
         input             | expected
         'last()'          | new MError.IncorrectNumberOfArgs(1, 0)
-        'last("blah")'    | new MError.TypeMismatch("Expected ARRAY got STRING")
+        'last("blah")'    | new MError.TypeMismatch("Function does not support type STRING")
         'last([])'        | Null
         'last([0, 1, 2])' | new MInteger(2)
+    }
+
+    def "rest() function returns everything apart from the first item in an array"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input                   | expected
+        'rest()'                | new MError.IncorrectNumberOfArgs(1, 0)
+        'rest("blah")'          | new MError.TypeMismatch("Function does not support type STRING")
+        'rest([])'              | Null
+        'rest([1])'             | new MArray([])
+        'rest([0, 1, 2])'       | new MArray([new MInteger(1), new MInteger(2)])
+        'rest([0, "blah", []])' | new MArray([new MString("blah"), new MArray([])])
+    }
+
+    def "push() function creates a new array with a new item added"(String input, MObject expected) {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input               | expected
+        'push()'            | new MError.IncorrectNumberOfArgs(2, 0)
+        'push([])'          | new MError.IncorrectNumberOfArgs(2, 1)
+        'push([], 1)'       | new MArray([new MInteger(1)])
+        'push(1, [])'       | new MError.TypeMismatch("Expected ARRAY, got INTEGER")
+        'push([0], 1)'      | new MArray([new MInteger(0), new MInteger(1)])
+        'push(["blah"], 1)' | new MArray([new MString("blah"), new MInteger(1)])
+        'push([1], "blah")' | new MArray([new MInteger(1), new MString("blah")])
+        'push([1], [1])'    | new MArray([new MInteger(1), new MArray([new MInteger(1)])])
     }
 }
