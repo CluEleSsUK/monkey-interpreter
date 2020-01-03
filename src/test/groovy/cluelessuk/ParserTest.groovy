@@ -383,10 +383,7 @@ class ParserTest extends Specification {
         def program = new Parser(new Lexer(input)).parseProgram()
 
         expect:
-        !program.hasErrors()
-        program.statements.size() == 1
-        program.getStatements().get(0) instanceof ExpressionStatement
-        def expression = (ExpressionStatement) program.getStatements().get(0)
+        def expression = oneExpressionOrError(program)
         expression.expression == expected
 
         where:
@@ -441,9 +438,52 @@ class ParserTest extends Specification {
         def program = new Parser(new Lexer(input)).parseProgram()
 
         then:
-        program.statements.size() == 1
-        program.getStatements().get(0) instanceof ExpressionStatement
-        def expression = (ExpressionStatement) program.getStatements().get(0)
+        def expression = oneExpressionOrError(program)
         expression.expression == expected
+    }
+
+    def "Map literals parse anything as key or value (even things that should not evaluate)"() {
+        given:
+        def input = '{ "thing": 1, true: "blah", fn(x) { x }: 1 + 1 }'
+        def expected = new MapLiteral(
+                new Token(Tokens.LBRACE, "{"),
+                [
+                        (new StringLiteral(new Token(Tokens.STRING, "thing"), "thing"))                                                                                                                                                                                                            : new IntegerLiteral(new Token(Tokens.INT, "1"), 1),
+                        (new BooleanLiteral(new Token(Tokens.TRUE, "true"), true))                                                                                                                                                                                                                 : new StringLiteral(new Token(Tokens.STRING, "blah"), "blah"),
+                        (new FunctionLiteral(new Token(Tokens.FUNCTION, "fn"), [new Identifier(new Token(Tokens.IDENT, "x"), "x")], new BlockStatement(new Token(Tokens.LBRACE, "{"), [new ExpressionStatement(new Token(Tokens.IDENT, "x"), new Identifier(new Token(Tokens.IDENT, "x"), "x"))]))): new InfixExpression(new Token(Tokens.PLUS, "+"), new IntegerLiteral(new Token(Tokens.INT, "1"), 1), "+", new IntegerLiteral(new Token(Tokens.INT, "1"), 1))
+                ]
+        )
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        oneExpressionOrError(program).expression == expected
+    }
+
+    def "Empty map literals are parsed as map literals"() {
+        given:
+        def input = "{}"
+        def expected = new MapLiteral(new Token(Tokens.LBRACE, "{"), [:])
+
+        when:
+        def program = new Parser(new Lexer(input)).parseProgram()
+
+        then:
+        def expression = oneExpressionOrError(program)
+        expression.expression == expected
+
+    }
+
+    ExpressionStatement oneExpressionOrError(Program program) {
+        if (program.hasErrors()) {
+            throw new RuntimeException("Program has errors: ${program.errors}")
+        }
+
+        if (!(program.getStatements().get(0) instanceof ExpressionStatement)) {
+            throw new RuntimeException("Program first statement is not an expression")
+        }
+
+        return (ExpressionStatement) program.getStatements().get(0)
     }
 }

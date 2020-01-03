@@ -14,6 +14,7 @@ enum class Tokens {
     ASSIGN,
     COMMA,
     SEMICOLON,
+    COLON,
     LPAREN,
     RPAREN,
     LBRACE,

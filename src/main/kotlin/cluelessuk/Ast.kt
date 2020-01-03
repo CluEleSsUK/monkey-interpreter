@@ -137,6 +137,16 @@ data class ArrayLiteral(
     override fun toString() = "[${elements.joinToString(",")}]"
 }
 
+data class MapLiteral(
+    val token: Token,
+    val elements: Map<Expression, Expression>
+) : Expression() {
+    override fun tokenLiteral() = token.literal
+    override fun toString() = elements
+        .map { "${it.key}: ${it.value}" }
+        .joinToString(prefix = "#{ ", separator = ", ", postfix = " }")
+}
+
 data class CallExpression(
     val token: Token,
     val function: Expression,

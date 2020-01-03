@@ -36,6 +36,7 @@ data class Lexer @JvmOverloads constructor(
             '*' -> readAndIncrement(Tokens.ASTERISK)
             '<' -> readAndIncrement(Tokens.LT)
             '>' -> readAndIncrement(Tokens.GT)
+            ':' -> readAndIncrement(Tokens.COLON)
             '=' -> readEquals()
             '!' -> readBang()
             '"' -> readString()
@@ -107,11 +108,7 @@ data class Lexer @JvmOverloads constructor(
     }
 
     private fun lookAheadWhile(next: Int, predicate: (position: Int) -> Boolean): Int {
-        if (next > code.length - 1) {
-            throw RuntimeException("Could not find required character in lookahead")
-        }
-
-        if (!predicate(next)) {
+        if (next > code.length - 1 || !predicate(next)) {
             return next
         }
 

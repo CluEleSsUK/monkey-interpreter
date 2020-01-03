@@ -18,7 +18,8 @@ class Parser(var lexer: Lexer) {
         Tokens.LPAREN to this::parseGroupedExpression,
         Tokens.IF to this::parseIfExpression,
         Tokens.FUNCTION to this::parseFunctionExpression,
-        Tokens.LBRACKET to this::parseArrayExpression
+        Tokens.LBRACKET to this::parseArrayExpression,
+        Tokens.LBRACE to this::parseMapExpression
     )
 
     private val infixParseFunctions = mapOf<TokenType, InfixParseFun>(
@@ -256,6 +257,29 @@ class Parser(var lexer: Lexer) {
 
         consumeTokenAndAssertType(Tokens.RBRACKET)
         return IndexExpression(infixToken, left, indexExpression)
+    }
+
+    private fun parseMapExpression(): MapLiteral? {
+        val startToken = lexer.token ?: return null
+        var values = mapOf<Expression, Expression>()
+
+        while (peekToken()?.type != Tokens.RBRACE && !endOfFileOrError()) {
+            if (peekToken()?.type == Tokens.COMMA) {
+                consumeToken()
+                continue
+            }
+
+            val key = parseExpression(OperatorPrecedence.LOWEST)
+            val colon = consumeTokenAndAssertType(Tokens.COLON)
+            val value = parseExpression(OperatorPrecedence.LOWEST)
+            if (key == null || colon == null || value == null) {
+                return null
+            }
+
+            values = values.plus(key to value)
+        }
+
+        return MapLiteral(startToken, values)
     }
 
     private fun peekToken(): Token? {
