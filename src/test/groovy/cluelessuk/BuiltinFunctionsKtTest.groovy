@@ -39,4 +39,19 @@ class BuiltinFunctionsKtTest extends Specification {
         'first([])'        | Null
         'first([0, 1, 2])' | new MInteger(0)
     }
+
+    def "last() function only works for arrays, returns null if array is empty"() {
+        given:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input             | expected
+        'last()'          | new MError.IncorrectNumberOfArgs(1, 0)
+        'last("blah")'    | new MError.TypeMismatch("Expected ARRAY got STRING")
+        'last([])'        | Null
+        'last([0, 1, 2])' | new MInteger(2)
+    }
 }

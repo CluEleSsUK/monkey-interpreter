@@ -2,7 +2,8 @@ package cluelessuk
 
 val builtinFunctions = mapOf(
     "len" to BuiltinFunction(withOneArg(::len)),
-    "first" to BuiltinFunction(withOneArg(::first))
+    "first" to BuiltinFunction(withOneArg(checkingType(::first))),
+    "last" to BuiltinFunction(withOneArg(checkingType(::last)))
 )
 
 fun len(target: MObject): MObject {
@@ -13,10 +14,16 @@ fun len(target: MObject): MObject {
     }
 }
 
-fun first(target: MObject): MObject {
-    return when (target) {
-        is MArray -> target.elements.firstOrNull() ?: Null
-        else -> MError.TypeMismatch("Expected ARRAY got ${target.type}")
+fun first(target: MArray): MObject = target.elements.firstOrNull() ?: Null
+fun last(target: MArray): MObject = target.elements.lastOrNull() ?: Null
+
+inline fun <reified T : MObject> checkingType(crossinline fn: (T) -> MObject): (MObject) -> MObject {
+    return { input: MObject ->
+        if (input !is T) {
+            MError.TypeMismatch("Expected ARRAY got ${input.type}")
+        } else {
+            fn(input)
+        }
     }
 }
 
