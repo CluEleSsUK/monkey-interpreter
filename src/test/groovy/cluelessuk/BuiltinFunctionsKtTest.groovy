@@ -2,8 +2,6 @@ package cluelessuk
 
 import spock.lang.Specification
 
-import java.rmi.MarshalException
-
 class BuiltinFunctionsKtTest extends Specification {
 
     def evaluator = new MonkeyRuntime()

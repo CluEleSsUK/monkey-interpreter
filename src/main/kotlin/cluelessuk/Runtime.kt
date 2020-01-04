@@ -59,7 +59,6 @@ class MonkeyRuntime {
             is Identifier -> evalIdentifier(node, scope)
             is CallExpression -> evalCallExpression(node, scope)
             is IndexExpression -> evalIndexExpression(node, scope)
-            else -> Null
         }
 
     private fun evalProgram(program: Program, scope: Scope): MObject {
