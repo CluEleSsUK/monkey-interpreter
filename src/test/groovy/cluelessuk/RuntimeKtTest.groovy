@@ -377,4 +377,78 @@ class RuntimeKtTest extends Specification {
         result instanceof MError.ParseError
     }
 
+    def "Map literal evaluates to a valid kotlin map with correct data types"() {
+        given:
+        def input = """
+            let two = "two";
+            {
+                "one": 10 - 9,
+                two: 1 + 1,
+                "thr" + "ee": 6 / 2,
+                4: 4,
+                true: 5,
+                false: 6
+            }
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result instanceof MMap
+        def resultMap = (MMap) result
+        resultMap.elements.get(new MString("one")) == new MInteger(1)
+        resultMap.elements.get(new MString("two")) == new MInteger(2)
+        resultMap.elements.get(new MString("three")) == new MInteger(3)
+        resultMap.elements.get(new MInteger(4)) == new MInteger(4)
+        resultMap.elements.get(True) == new MInteger(5)
+        resultMap.elements.get(False) == new MInteger(6)
+    }
+
+    def "Map literal does not evaluate with invalid types for keys"() {
+        given:
+        def input = """
+            {
+                fn(x) { x }: 1
+            }
+        """
+
+        when:
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        then:
+        result instanceof MError.TypeMismatch
+    }
+
+    def "Indexing of map returns correct values"(String input, MObject expected) {
+        given:
+        def environment = """
+            let two = "two";
+            let map = {
+                "one": 10 - 9,
+                two: 1 + 1,
+                "thr" + "ee": 6 / 2,
+                4: 4,
+                true: 5,
+                false: 6
+            }
+        """
+        evaluator.eval(new Parser(new Lexer(environment)).parseProgram())
+        def result = evaluator.eval(new Parser(new Lexer(input)).parseProgram())
+
+        expect:
+        result == expected
+
+        where:
+        input               | expected
+        'map["one"]'        | new MInteger(1)
+        'map[two]'          | new MInteger(2)
+        'map["three"]'      | new MInteger(3)
+        'map[4]'            | new MInteger(4)
+        'map[true]'         | new MInteger(5)
+        'map[false]'        | new MInteger(6)
+        'map["blah"]'       | Null
+        'map[fn (x) { x }]' | new MError.TypeMismatch("Maps cannot be indexed by FUNCTION")
+    }
+
 }

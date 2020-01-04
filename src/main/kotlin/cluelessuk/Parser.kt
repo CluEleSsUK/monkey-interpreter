@@ -248,14 +248,15 @@ class Parser(var lexer: Lexer) {
     }
 
     private fun parseIndexExpression(left: Expression): IndexExpression? {
-        val infixToken = consumeTokenAndAssertType(Tokens.LBRACKET)
+        val infixToken = consumeTokenAndAssertType(Tokens.LBRACKET) ?: return null
         val indexExpression = parseExpression(OperatorPrecedence.LOWEST)
 
-        if (infixToken == null || indexExpression == null) {
+        if (indexExpression == null) {
+            raiseError("Cannot parse an index expression without an index")
             return null
         }
 
-        consumeTokenAndAssertType(Tokens.RBRACKET)
+        consumeTokenAndAssertType(Tokens.RBRACKET) ?: return null
         return IndexExpression(infixToken, left, indexExpression)
     }
 

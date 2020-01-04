@@ -12,7 +12,8 @@ data class MBoolean(val value: Boolean) : MObject("BOOLEAN") {
 
 data class MString(val value: String) : MObject("STRING")
 data class MArray(val elements: List<MObject>) : MObject("ARRAY")
-data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("OBJECT")
+data class MMap(val elements: Map<MObject, MObject>) : MObject("MAP")
+data class MFunction(val parameters: List<Identifier>, val body: BlockStatement, val scope: Scope) : MObject("FUNCTION")
 data class BuiltinFunction(val f: (List<MObject>) -> MObject) : MObject("BUILTIN-FUNCTION")
 data class MReturnValue(val value: MObject) : MObject("RETURN")
 object Null : MObject("NULL") {
@@ -48,6 +49,7 @@ class MonkeyRuntime {
             is StringLiteral -> MString(node.value)
             is FunctionLiteral -> MFunction(node.arguments, node.body, scope)
             is ArrayLiteral -> evalArrayExpression(node, scope)
+            is MapLiteral -> evalMapExpression(node, scope)
             is PrefixExpression -> evalPrefixExpression(node, scope)
             is InfixExpression -> evalInfixExpression(node, scope)
             is IfExpression -> evalIfExpression(node, scope)
@@ -170,6 +172,28 @@ class MonkeyRuntime {
         })
     }
 
+    private fun evalMapExpression(literal: MapLiteral, scope: Scope): MObject {
+        var map = mapOf<MObject, MObject>()
+        literal.elements.forEach {
+            val key = eval(it.key, scope)
+            if (key is MError) {
+                return key
+            }
+
+            if (key !is MString && key !is MInteger && key !is MBoolean) {
+                return MError.TypeMismatch("Map key must be a String, Boolean or an Integer")
+            }
+
+            val value = eval(it.value, scope)
+            if (value is MError) {
+                return value
+            }
+
+            map = map.plus(key to value)
+        }
+        return MMap(map)
+    }
+
     private fun evalIfExpression(expression: IfExpression, scope: Scope): MObject {
         val condition = eval(expression.condition, scope)
 
@@ -224,12 +248,27 @@ class MonkeyRuntime {
 
         return when {
             index is MError -> index
-            left !is MArray -> MError.TypeMismatch("Index not supported for type ${left.type}")
+            left is MArray -> evalArrayIndex(index, left)
+            left is MMap -> evalMapIndex(index, left)
+            else -> MError.TypeMismatch("Index not supported for type ${left.type}")
+        }
+    }
+
+    private fun evalArrayIndex(index: MObject, array: MArray): MObject {
+        return when {
             index !is MInteger -> MError.TypeMismatch("Arrays cannot be indexed by ${index.type}")
             index.value < 0 -> Null
-            index.value > left.elements.size - 1 -> Null
-            else -> left.elements[index.value]
+            index.value > array.elements.size - 1 -> Null
+            else -> array.elements[index.value]
         }
+    }
+
+    private fun evalMapIndex(index: MObject, map: MMap): MObject {
+        if (index !is MInteger && index !is MString && index !is MBoolean) {
+            return MError.TypeMismatch("Maps cannot be indexed by ${index.type}")
+        }
+
+        return map.elements[index] ?: Null
     }
 
     private fun applyFunction(func: MObject, args: List<MObject>): MObject {
